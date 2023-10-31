@@ -105,7 +105,8 @@ int main(int argc, char* argv[]) {
 
         int error = compress(infile, outfile, &read, &written);
         if (error != 0) {
-            fprintf(stderr, "[%s] ERROR: An error occoured while compressing file %s: %s\n", argv[0], input_filenames[i], strerror(errno));
+            fprintf(stderr, "[%s] ERROR: An error occoured while compressing file %s: %s\n",
+                    argv[0], infiles[i], strerror(errno));
 
         }
 
