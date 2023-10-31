@@ -12,7 +12,7 @@ void usage(const char program_name[]) {
     exit(EXIT_FAILURE);
 }  
 
-int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {   
+int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
 	int count = 0;
 	int last_char;
 	while (true) {
@@ -48,7 +48,7 @@ int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
     int error = fprintf(in, "%c%d", last_char, count);
 	if (error < 0) {  return error;  }
 	*written = *written + 1; return 0;
-} 
+}
 
 int main(int argc, char* argv[]) {
     const char *program_name = argv[0];
@@ -72,6 +72,7 @@ int main(int argc, char* argv[]) {
                 assert(0);
         }
     }
+
     int infile_count = argc - optind;
     char const *infiles[infile_count];
     for (int i = 0; i < infile_count; i++) {
@@ -89,10 +90,29 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    FILE *in_name = NULL;
-    if (infile_count == 0) {
-        in_name = stdin;
+
+    uint16_t read = 0;
+    uint16_t written = 0;
+
+    for (int i = 0; i < infile_count; i++) {
+        FILE *infile = fopen(infiles[i], "r");
+        if (infile == NULL) {
+            fprintf(stderr, "[%s] ERROR: opening file %s failed: %s\n",
+                    argv[0], infiles[i], strerror(errno));
+            fclose(outfile);
+            exit(EXIT_FAILURE);
+        }
+
+        int error = compress(infile, outfile, &read, &written);
+        if (error != 0) {
+            fprintf(stderr, "[%s] ERROR: An error occoured while compressing file %s: %s\n", argv[0], input_filenames[i], strerror(errno));
+
+        }
+
+        fclose(infile);
     }
+
+
 
     printf("%s\n", program_name);
     return 0;
