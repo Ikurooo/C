@@ -167,8 +167,8 @@ int main(int argc, char *argv[]) {
         fclose(outfile);
     }
 
-    fprintf(stderr, "Read: %d\n", read);
-    fprintf(stderr, "Written: %d\n", written);
+    fprintf(stderr, "Read: %d characters\n", read);
+    fprintf(stderr, "Written: %d characters\n", written);
     return EXIT_SUCCESS;
 
     BOTH_FILES:
