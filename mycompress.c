@@ -12,116 +12,121 @@ void usage(const char *program_name) {
     exit(EXIT_FAILURE);
 }
 
+void strip(char *str) {
+    for (int i = 0; str[i]; i++) {
+        if (str[i] == '\n') {
+            str[i] = '\0';
+        }
+    }
+}
+
 int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
-    int count = 0;
-    int last_char;
+    char *line;
+    size_t size;
+    while ((getline(&line, &size, in)) >= 0) {
+        u_char last_char;
+        int count = 0;
+        for (int i = 0; line[i]; i++) {
 
-    while (true) {
-        int current_char = fgetc(in);
-        // If end of file is reached, we still need to write the last compressed thing.
-        if (feof(in)) {
-            break;
+            if (count == 0) {
+                last_char = line[i];
+                count = 1;
+                continue;
+            }
+
+            if (line[i] == last_char) {
+                count++;
+                continue;
+            }
+
+            fprintf(out, "%d%c", count, last_char);
+            count = 0;
+            last_char = line[i];
         }
-
-        *read = *read + 1;
-        if (count == 0) {
-            count++;
-            last_char = current_char;
-            continue;
-        }
-
-        if (current_char == last_char) {
-            count++;
-            continue;
-        }
-
-        // Else, it failed all conditions, so we need to write it out
-        int error = fprintf(out, "%c%d", count, last_char);
-        if (error < 0) {
-            return error;
-        }
-
-        *written = *written + error;
-        count = 1;
-        last_char = current_char;
+        fprintf(out, "\n");
     }
-
-    int error = fprintf(out, "%c%d", last_char, count);
-    if (error < 0) {
-        return error;
-    }
-    *written = *written + error;
     return 0;
 }
 
 int main(int argc, char *argv[]) {
     const char *program_name = argv[0];
-    const char *outfile = NULL;
+    const char *outfile_name = NULL;
 
     int option;
     while ((option = getopt(argc, argv, "o:")) != -1) {
         switch (option) {
             case 'o':
-                if (outfile != NULL) {
+                if (outfile_name != NULL) {
                     fprintf(stderr, "[%s] ERROR: flag -o can only appear once\n", program_name);
                     usage(program_name);
                 }
-                outfile = optarg;
+                outfile_name = optarg;
                 break;
             case '?':
                 usage(program_name);
                 break;
             default:
-                assert(0);
+               assert(0); 
         }
     }
 
-    int infile_count = argc - optind;
-    char const *infiles[infile_count];
-    for (int i = 0; i < infile_count; i++) {
-        infiles[i] = argv[optind + i];
-    }
-
-    // Set the default output to stdout
-    FILE *outfile_name = stdout;
-    if (outfile != NULL) {
-        // Check if the file exists or an error occurs while opening it
-        outfile_name = fopen(outfile, "w");
-        if (outfile_name == NULL) {
-            fprintf(stderr, "[%s] ERROR: opening file %s failed: %s\n", program_name, outfile, strerror(errno));
+    FILE *outfile = stdout;
+    if (outfile_name != NULL) {
+        outfile = fopen(outfile_name, "w");
+        if (outfile == NULL) {
+            printf("[%s] ERROR: An error occurred while opening file %s\n", program_name, outfile_name);
             exit(EXIT_FAILURE);
         }
     }
+
+    int length = argc - optind;
+    char *filenames[length];
+    FILE *infile = NULL;
+
+    // segfault uwu
+    for (int i = 0; i < length; i++) {
+        filenames[i] = argv[optind + i];
+        printf("%s\n", filenames[i]);
+    }
+
 
     uint16_t read = 0;
     uint16_t written = 0;
-
-    for (int i = 0; i < infile_count; i++) {
-        FILE *infile_name = fopen(infiles[i], "r");
-        if (infile_name == NULL) {
-            fprintf(stderr, "[%s] ERROR: opening file %s failed: %s\n",
-                    argv[0], infiles[i], strerror(errno));
-            fclose(outfile_name);
+    const char *infile_name = NULL;
+    for (int i = 0; i < length; i++) {
+        infile_name = filenames[i];
+        infile = fopen(infile_name, "r");
+        if (infile == NULL) {
+            printf("[%s] ERROR: An error occurred while opening file %s\n", program_name, infile_name);
+            fclose(outfile);
             exit(EXIT_FAILURE);
         }
 
-        int error = compress(infile_name, outfile_name, &read, &written);
+        int error = compress(infile, outfile, &read, &written);
+        if (error < 0) {
+            printf("[%s] ERROR: An error occurred while compressing file %s\n",program_name, infile_name);
+            fclose(outfile);
+            fclose(infile);
+        }
+    }
+
+
+    if (length == 0) {
+        infile = stdin;
+        int error = compress(infile, outfile, &read, &written);
         if (error != 0) {
-            fprintf(stderr, "[%s] ERROR: An error occurred while compressing file %s: %s\n",
-                    argv[0], infiles[i], strerror(errno));
-            fclose(infile_name);
+            printf("[%s] ERROR: An error occurred while compressing stdin [%d]\n",program_name, error);
+            fclose(outfile);
+            fclose(infile);
             exit(EXIT_FAILURE);
         }
-        fclose(infile_name);
     }
 
-    // Close the output file if it wasn't stdout
-    if (outfile_name != stdout) {
-        fclose(outfile_name);
+    if (outfile != stdout)  {
+        fclose(outfile);
     }
 
-    // Print the statistics
-    fprintf(stderr, "Read: %7hu characters\nWritten: %4hu characters\nCompression ratio: %4.1f%%\n",
-            read, written, ((double)(written) / read) * 100.0);
+    printf("Written: %d\n", written);
+    printf("Read: %d\n", read);
     return EXIT_SUCCESS;
 }
