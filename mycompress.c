@@ -21,13 +21,15 @@ void strip(char *str) {
 }
 
 int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
-    char *line;
-    size_t size;
+    char *line = NULL;
+    size_t size = 0;
     int error;
     while ((error = getline(&line, &size, in)) >= 0) {
         if (error < 0) {
+            free(line);
             return -1;
         }
+
         u_char last_char;
         int count = 0;
         for (int i = 0; line[i]; i++) {
@@ -44,11 +46,21 @@ int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
             }
 
             fprintf(out, "%d%c", count, last_char);
-            count = 0;
+            *written = *written + 2;
+            count = 1       ;
             last_char = line[i];
         }
+
+        *read = *read + error;
         fprintf(out, "\n");
+        *written = *written + 1;
+
+        free(line);  // Free the memory for the current line
+        line = NULL;  // Set line to NULL to avoid double-free issues
+        size = 0;
     }
+
+    free(line);  // Free the memory for the current line
     return 0;
 }
 
@@ -70,7 +82,7 @@ int main(int argc, char *argv[]) {
                 usage(program_name);
                 break;
             default:
-               assert(0); 
+               assert(0);
         }
     }
 
@@ -87,25 +99,24 @@ int main(int argc, char *argv[]) {
     char *filenames[length];
     FILE *infile = NULL;
 
-    // segfault uwu
     for (int i = 0; i < length; i++) {
         filenames[i] = argv[optind + i];
         printf("%s\n", filenames[i]);
     }
-
 
     uint16_t read = 0;
     uint16_t written = 0;
     const char *infile_name = NULL;
     for (int i = 0; i < length; i++) {
         infile_name = filenames[i];
+        printf("%s", filenames[i]);
         infile = fopen(infile_name, "r");
         if (infile == NULL) {
             printf("[%s] ERROR: An error occurred while opening file %s\n", program_name, infile_name);
             fclose(outfile);
             exit(EXIT_FAILURE);
         }
-
+        printf("ssss");
         int error = compress(infile, outfile, &read, &written);
         if (error < 0) {
             printf("[%s] ERROR: An error occurred while compressing file %s\n",program_name, infile_name);
