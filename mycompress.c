@@ -15,14 +15,12 @@
 
 /**
  * @brief Print a usage message to stderr and exit the process with EXIT_FAILURE.
- *
  * @param program_name The name of the current program.
  */
 void usage(const char *program_name) {
     fprintf(stderr, "[%s] Usage: %s [-o outfile] [file...]\n", program_name, program_name);
     exit(EXIT_FAILURE);
 }
-
 
 /**
  * @brief Compresses the input file and writes it out to the output file.
@@ -67,12 +65,14 @@ int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
                 return -1;
             }
 
+            // Update statistics and reset
             *read += count;
             *written += error;
             count = 1;
             last_char = line[i];
         }
 
+        // End of line; Update statistics; Cleanup memory; Reset
         error = fprintf(out, "\n");
         if (error < 0) {
             return -1;
@@ -117,6 +117,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Handle outfile
     FILE *outfile = stdout;
     if (outfile_name != NULL) {
         outfile = fopen(outfile_name, "w");
@@ -126,6 +127,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Collect input file names
     int length = argc - optind;
     char *filenames[length];
 
@@ -133,6 +135,7 @@ int main(int argc, char *argv[]) {
         filenames[i] = argv[optind + i];
     }
 
+    // Parse input files
     uint16_t read = 0;
     uint16_t written = 0;
     FILE *infile = NULL;
@@ -164,8 +167,8 @@ int main(int argc, char *argv[]) {
         fclose(outfile);
     }
 
-    printf("Written: %d\n", written);
-    printf("Read: %d\n", read);
+    fprintf(stderr, "Read: %d\n", read);
+    fprintf(stderr, "Written: %d\n", written);
     return EXIT_SUCCESS;
 
     BOTH_FILES:
