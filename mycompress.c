@@ -23,7 +23,11 @@ void strip(char *str) {
 int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
     char *line;
     size_t size;
-    while ((getline(&line, &size, in)) >= 0) {
+    int error;
+    while ((error = getline(&line, &size, in)) >= 0) {
+        if (error < 0) {
+            return -1;
+        }
         u_char last_char;
         int count = 0;
         for (int i = 0; line[i]; i++) {
