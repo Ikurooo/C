@@ -12,18 +12,11 @@ void usage(const char *program_name) {
     exit(EXIT_FAILURE);
 }
 
-void strip(char *str) {
-    for (int i = 0; str[i]; i++) {
-        if (str[i] == '\n') {
-            str[i] = '\0';
-        }
-    }
-}
-
 int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
     char *line = NULL;
     size_t size = 0;
     int error;
+
     while ((error = getline(&line, &size, in)) >= 0) {
         if (error < 0) {
             free(line);
@@ -32,8 +25,8 @@ int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
 
         u_char last_char;
         int count = 0;
-        for (int i = 0; line[i]; i++) {
 
+        for (int i = 0; line[i]; i++) {
             if (count == 0) {
                 last_char = line[i];
                 count = 1;
@@ -45,22 +38,29 @@ int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
                 continue;
             }
 
-            fprintf(out, "%d%c", count, last_char);
-            *written = *written + 2;
-            count = 1       ;
+            error = fprintf(out, "%c%d", last_char, count);
+            if (error < 0) {
+                return -1;
+            }
+
+            *read += count;
+            *written += error;
+            count = 1;
             last_char = line[i];
         }
 
-        *read = *read + error;
-        fprintf(out, "\n");
-        *written = *written + 1;
+        error = fprintf(out, "\n");
+        *read += 1;
+        if (error < 0) {
+            return -1;
+        }
+        *written += error;
 
-        free(line);  // Free the memory for the current line
-        line = NULL;  // Set line to NULL to avoid double-free issues
+        free(line);
+        line = NULL;
         size = 0;
     }
 
-    free(line);  // Free the memory for the current line
     return 0;
 }
 
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
                 usage(program_name);
                 break;
             default:
-               assert(0);
+                assert(0);
         }
     }
 
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
     if (outfile_name != NULL) {
         outfile = fopen(outfile_name, "w");
         if (outfile == NULL) {
-            printf("[%s] ERROR: An error occurred while opening file %s\n", program_name, outfile_name);
+            fprintf(stderr, "[%s] ERROR: An error occurred while opening file %s\n", program_name, outfile_name);
             exit(EXIT_FAILURE);
         }
     }
@@ -101,43 +101,42 @@ int main(int argc, char *argv[]) {
 
     for (int i = 0; i < length; i++) {
         filenames[i] = argv[optind + i];
-        printf("%s\n", filenames[i]);
     }
 
     uint16_t read = 0;
     uint16_t written = 0;
     const char *infile_name = NULL;
+
     for (int i = 0; i < length; i++) {
         infile_name = filenames[i];
-        printf("%s", filenames[i]);
         infile = fopen(infile_name, "r");
         if (infile == NULL) {
-            printf("[%s] ERROR: An error occurred while opening file %s\n", program_name, infile_name);
+            fprintf(stderr, "[%s] ERROR: An error occurred while opening file %s\n", program_name, infile_name);
             fclose(outfile);
             exit(EXIT_FAILURE);
         }
-        printf("ssss");
+
         int error = compress(infile, outfile, &read, &written);
         if (error < 0) {
-            printf("[%s] ERROR: An error occurred while compressing file %s\n",program_name, infile_name);
+            fprintf(stderr, "[%s] ERROR: An error occurred while compressing file %s\n", program_name, infile_name);
             fclose(outfile);
             fclose(infile);
+            exit(EXIT_FAILURE);
         }
     }
-
 
     if (length == 0) {
         infile = stdin;
         int error = compress(infile, outfile, &read, &written);
         if (error != 0) {
-            printf("[%s] ERROR: An error occurred while compressing stdin [%d]\n",program_name, error);
+            fprintf(stderr, "[%s] ERROR: An error occurred while compressing stdin [%d]\n", program_name, error);
             fclose(outfile);
             fclose(infile);
             exit(EXIT_FAILURE);
         }
     }
 
-    if (outfile != stdout)  {
+    if (outfile != stdout) {
         fclose(outfile);
     }
 
