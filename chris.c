@@ -114,12 +114,12 @@ int main(int argc, char *argv[]) {
         }
     } else {
         for (int i = 0; i < argc - optind; ++i) {
-            printf("%s\n", argv[optind + i]);
             //Check if the input file exists or not and if we have permission:
             if (access(argv[optind + i], F_OK) != 0 ||
                 access(argv[optind + i], R_OK) != 0 ||
                 access(argv[optind + i], W_OK) != 0) {
                 fprintf(stderr, "[%s] ERROR: Opening file: %s. %s\n", programName, argv[optind + 1], strerror(errno));
+                if (out != stdout) { fclose(out);}
                 exit(EXIT_FAILURE);
             }
 
@@ -136,7 +136,6 @@ int main(int argc, char *argv[]) {
 
     //Write the amount of characters read and written into stderr:
     fprintf(stderr, "READ: %lu characters\nWritten: %lu characters\n", charsRead, charsWritten);
-
     if(out != stdout) {fclose(out);}
     exit(EXIT_SUCCESS);
 }
