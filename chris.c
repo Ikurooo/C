@@ -113,13 +113,13 @@ int main(int argc, char *argv[]) {
             compress(line, out, &charsRead, &charsWritten);
         }
     } else {
-        for (int i = 1; i < argc; ++i) {
-
+        for (int i = 0; i < argc - optind; ++i) {
+            printf("%s\n", argv[optind + i]);
             //Check if the input file exists or not and if we have permission:
             if (access(argv[optind + i], F_OK) != 0 ||
                 access(argv[optind + i], R_OK) != 0 ||
                 access(argv[optind + i], W_OK) != 0) {
-                fprintf(stderr, "[%s] ERROR: Opening file: %s. %s\n", programName, optind + i, strerror(errno));
+                fprintf(stderr, "[%s] ERROR: Opening file: %s. %s\n", programName, argv[optind + 1], strerror(errno));
                 exit(EXIT_FAILURE);
             }
 
