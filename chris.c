@@ -25,47 +25,35 @@ void usage(void) {
  * @param written amount of written characters including \n
  */
 void compress(char *input, FILE *outputFile, uint64_t *read, uint64_t *written) {
-    char *output = (char *) malloc(2 * strlen(input) + 1);
-//    memset(output, 0, 2 * (strlen(input) + 1)); //Setting every memory address of output to 0
 
-    char currentChar = input[0];
-    int concurrentChars = 0;
-    int outputIndex = 0;
+    u_char last_char;
+    int count = 0;
 
     *read = *read + strlen(input);
-    for (int i = 0; i <= strlen(input); ++i) {
-        if ((char) input[0] == '\n') break;
+    for (int i = 0; input[i]; ++i) {
 
-        //ignore every ASCII that is not on the Keyboard
-        if ((char) input[i] != '\0' && (input[i] <= 31 || input[i] >= 127) && (char) input[i] != '\n') {
+        if (count == 0) {
+            count = 1;
+            last_char = input[i];
             continue;
         }
-        if ((char) input[i] == EOF) break;
-        if ((char) input[i] == '\n') *written = *written + 0;
-        else if (i < strlen(input) && input[i] == currentChar)concurrentChars++; // ^It may throw an error. So to be safe I checked "i < strlen(input)" again
-        else {
-            output[outputIndex++] = currentChar;
 
-            //Converting an int to char and adding it to the output
-            char buffer[100]; //10^100 should be enough. Probably
-            sprintf(buffer, "%d", concurrentChars);
-
-            //add every digit to the output
-            for (int j = 0; j < sizeof(buffer); ++j) {
-                if ((char) buffer[j] == '\0') break;
-                output[outputIndex++] = buffer[j];
-            }
-
-            currentChar = input[i];
-            concurrentChars = 1;
+        if (last_char == input[i]) {
+            count++;
+            continue;
         }
+
+        int printed = fprintf(outputFile, "%c%d", last_char, count);
+        if (printed < 0) {
+            fprintf(stderr, "[%s] ERROR: Error while writing to file\n", programName);
+        }
+
+        *written += printed;
+        count = 1;
+        last_char = input[i];
+
     }
-
-    //Setting the last character to \0 to indicate that the array has ended. This prevents that other data from other programs is returned.
-    output[outputIndex] = '\0';
-    *written = *written + fprintf(outputFile, "%s\n", output);
-
-    free(output);
+    fprintf(outputFile, "\n");
 }
 
 /**
