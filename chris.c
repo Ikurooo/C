@@ -114,27 +114,22 @@ int main(int argc, char *argv[]) {
         }
     } else {
         for (int i = 1; i < argc; ++i) {
-            //If the -o option is found, then skip it so that we don't mistake it with the input file(s)
-            if (strncmp(argv[i], "-o", 2) == 0) {
-                i++;
-                continue;
-            }
 
             //Check if the input file exists or not and if we have permission:
-            if (access(argv[i], F_OK) != 0 ||
-                access(argv[i], R_OK) != 0 ||
-                access(argv[i], W_OK) != 0) {
-                fprintf(stderr, "[%s] ERROR: Opening file: %s. %s\n", programName, argv[i], strerror(errno));
+            if (access(argv[optind + i], F_OK) != 0 ||
+                access(argv[optind + i], R_OK) != 0 ||
+                access(argv[optind + i], W_OK) != 0) {
+                fprintf(stderr, "[%s] ERROR: Opening file: %s. %s\n", programName, optind + i, strerror(errno));
                 exit(EXIT_FAILURE);
             }
 
-            FILE *inFile = fopen(argv[i], "r");
             char *line = NULL;
             size_t size = 0;
+            FILE *inFile = fopen(argv[optind + i], "r");
+
             while (getline(&line, &size, inFile) >= 0) {
                 compress(line, out, &charsRead, &charsWritten);
             }
-            if (feof(inFile)) { break;}
             fclose(inFile);
         }
     }
@@ -142,6 +137,6 @@ int main(int argc, char *argv[]) {
     //Write the amount of characters read and written into stderr:
     fprintf(stderr, "READ: %lu characters\nWritten: %lu characters\n", charsRead, charsWritten);
 
-    fclose(out);
+    if(out != stdout) {fclose(out);}
     exit(EXIT_SUCCESS);
 }
