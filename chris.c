@@ -23,6 +23,7 @@ void usage(void) {
  * @param outputFile A pointer to a FILE object that represents the output file where the compressed data will be written.
  * @param read  amount of read characters including \n
  * @param written amount of written characters including \n
+ * @details function does not check for newlines > manually done in main()
  */
 void compress(char *input, FILE *outputFile, uint64_t *read, uint64_t *written) {
 
