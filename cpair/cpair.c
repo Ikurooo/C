@@ -13,6 +13,7 @@ int ptostdfile(FILE *file, point p) {}
 point strtop(char *input) {
     point p;
 
+    // strtok statically binds the input string and if NULL is given works on with the last string passed  in
     char *x_str = strtok(input, " ");
     char *y_str = strtok(NULL, "\n");
 
@@ -21,6 +22,7 @@ point strtop(char *input) {
         exit(EXIT_FAILURE);
     }
 
+    // strtof collects every unused char in the char pointer
     char *endptr_x;
     p.x = strtof(x_str, &endptr_x);
 
@@ -28,12 +30,12 @@ point strtop(char *input) {
     p.y = strtof(y_str, &endptr_y);
 
     if (*endptr_x != '\0') {
-        fprintf(stderr, "ERROR: error parsing first float.\n");
+        fprintf(stderr, "Error: Malformed input line\n");
         exit(EXIT_FAILURE);
     }
 
     if (*endptr_y != '\0') {
-        fprintf(stderr, "ERROR: error parsing first float.\n");
+        fprintf(stderr, "Error: Malformed input line\n");
         exit(EXIT_FAILURE);
     }
 
