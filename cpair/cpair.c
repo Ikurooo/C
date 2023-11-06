@@ -21,6 +21,7 @@ point strtop(char *input) {
         exit(EXIT_FAILURE);
     } else {
         char *endptr;
+        // strtof stores any unused parts of the token in the end pointer
         p.x = strtof(x_str, &endptr);
         if (*endptr != '\0' || endptr == x_str) {
             fprintf(stderr, "Error: Invalid float in the first part\n");
