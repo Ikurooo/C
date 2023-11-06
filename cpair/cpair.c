@@ -22,13 +22,13 @@ point strtop(char *input) {
     } else {
         char *endptr;
         p.x = strtof(x_str, &endptr);
-        if (*endptr != '\0') {
+        if (*endptr != '\0' || endptr == x_str) {
             fprintf(stderr, "Error: Invalid float in the first part\n");
             exit(EXIT_FAILURE);
         }
 
         p.y = strtof(y_str, &endptr);
-        if (*endptr != '\0') {
+        if (*endptr != '\0' || endptr == y_str) {
             fprintf(stderr, "Error: Invalid float in the second part\n");
             exit(EXIT_FAILURE);
         }
