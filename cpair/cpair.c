@@ -8,8 +8,25 @@ typedef struct {
     float y;
 } point;
 
+void usage(const char *process) {
+    fprintf(stderr, "[%s] ERROR: %s does not accept any arguments.\n", process, process);
+    exit(EXIT_FAILURE);
+}
+
 int ptofile(FILE *file, point *p) {
     fprintf(file, "%f %f\n", p->x, p->y);
+}
+
+float sumpx(point *points, size_t stored) {
+    float sum = 0;
+    for (int i = 0; i < stored; i++) {
+        sum += (points)[i].x;
+    }
+    return sum;
+}
+
+float meanpx(point *points, size_t stored) {
+    return sumpx(points, stored) / (float)stored;
 }
 
 point strtop(char *input) {
@@ -54,10 +71,9 @@ int stdintopa(point **points, size_t *stored)
         return -1;
     }
 
-    // Read stdin line by line.
     char *line = NULL;
-    size_t linecap = 0;
-    while (getline(&line, &linecap, stdin) != -1)
+    size_t linelen = 0;
+    while (getline(&line, &linelen, stdin) != -1)
     {
         // Resize
         if (capacity == *stored)
@@ -73,7 +89,6 @@ int stdintopa(point **points, size_t *stored)
             *points = tmp;
         }
 
-
         point p = strtop(line);
         (*points)[*stored] = p;
         (*stored)++;
@@ -87,9 +102,13 @@ int stdintopa(point **points, size_t *stored)
 
 int main(int argc, char *argv[]) {
 
+    const char *process = argv[0];
+    if (argc != 1) {
+        usage(process);
+    }
+
     point *points;
     size_t stored = 0;
-
     stdintopa(&points, &stored);
 
     if (points == NULL)
@@ -101,6 +120,61 @@ int main(int argc, char *argv[]) {
         ptofile(stdout, &points[i]);
     }
 
+    printf("%f\n", meanpx(points, stored));
+
+
+    switch (stored) {
+        case 0:
+            fprintf(stderr, "[%s] ERROR: No points provided via stdin!\n", process);
+            free(points);
+            exit(EXIT_FAILURE);
+            break;
+        case 1:
+            free(points);
+            exit(EXIT_SUCCESS);
+            break;
+        case 2:
+            ptofile(stdout, &points[0]);
+            ptofile(stdout, &points[1]);
+            free(points);
+            exit(EXIT_SUCCESS);
+        default:
+            break;
+    }
+
+    int leftWritePipe[2];
+    int rightWritePipe[2];
+    int leftReadPipe[2];
+    int rightReadPipe[2];
+
+    if (pipe(leftWritePipe) == -1 || pipe(rightWritePipe) == -1 ||
+        pipe(leftReadPipe) == -1 || pipe(rightReadPipe) == -1)
+    {
+        fprintf(stderr, "[%s] ERROR: Cannot pipe\n", process);
+        free(points);
+        exit(EXIT_FAILURE);
+    }
+
+    pid_t leftChild = fork();
+
+    if (leftChild == -1) {
+        fprintf(stderr, "[%s] ERROR: Cannot fork\n", process);
+        close(leftWritePipe[0]);
+        close(leftWritePipe[1]);
+
+        close(leftReadPipe[0]);
+        close(leftReadPipe[1]);
+
+        close(rightWritePipe[0]);
+        close(rightWritePipe[1]);
+
+        close(rightReadPipe[0]);
+        close(rightReadPipe[1]);
+
+        exit(EXIT_FAILURE);
+    }
+
+    free(points);
     return 0;
 }
 
