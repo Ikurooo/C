@@ -1,38 +1,40 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "unistd.h"
 
 typedef struct {
     float x;
     float y;
 } point;
 
+int ptostdfile(FILE *file, point p) {}
+
 point strtop(char *input) {
     point p;
 
-    // strtok saves a string using a static variable and if NULL is passed in continues to work with that same string
-    // tokenise input
     char *x_str = strtok(input, " ");
-    char *y_str = strtok(NULL, " ");
-    char *excess = strtok(NULL, " ");
+    char *y_str = strtok(NULL, "\n");
 
-    if (x_str == NULL || y_str == NULL || excess != NULL) {
+    if (x_str == NULL || y_str == NULL) {
         fprintf(stderr, "Error: Malformed input line\n");
         exit(EXIT_FAILURE);
-    } else {
-        char *endptr;
-        // strtof stores any unused parts of the token in the end pointer
-        p.x = strtof(x_str, &endptr);
-        if (*endptr != '\0' || endptr == x_str) {
-            fprintf(stderr, "Error: Invalid float in the first part\n");
-            exit(EXIT_FAILURE);
-        }
+    }
 
-        p.y = strtof(y_str, &endptr);
-        if (*endptr != '\0' || endptr == y_str) {
-            fprintf(stderr, "Error: Invalid float in the second part\n");
-            exit(EXIT_FAILURE);
-        }
+    char *endptr_x;
+    p.x = strtof(x_str, &endptr_x);
+
+    char *endptr_y;
+    p.y = strtof(y_str, &endptr_y);
+
+    if (*endptr_x != '\0') {
+        fprintf(stderr, "ERROR: error parsing first float.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (*endptr_y != '\0') {
+        fprintf(stderr, "ERROR: error parsing first float.\n");
+        exit(EXIT_FAILURE);
     }
 
     return p;
@@ -40,11 +42,14 @@ point strtop(char *input) {
 
 
 
-int stdintopa(point **points, size_t *len)
+
+
+
+int stdintopa(point **points, size_t *stored)
 {
     // Create an dynamic array to store the points in.
-    size_t cap = 2;
-    *points = malloc(sizeof(point) * cap);
+    size_t capacity = 2;
+    *points = malloc(sizeof(point) * capacity);
     if (points == NULL)
     {
         return -1;
@@ -56,10 +61,10 @@ int stdintopa(point **points, size_t *len)
     while (getline(&line, &linecap, stdin) != -1)
     {
         // Resize
-        if (cap == *len)
+        if (capacity == *stored)
         {
-            cap *= 2;
-            point *tmp = realloc(*points, sizeof(point) * cap);
+            capacity *= 2;
+            point *tmp = realloc(*points, sizeof(point) * capacity);
             if (tmp == NULL)
             {
                 free(line);
@@ -71,8 +76,8 @@ int stdintopa(point **points, size_t *len)
 
 
         point p = strtop(line);
-        (*points)[*len] = p;
-        (*len)++;
+        (*points)[*stored] = p;
+        (*stored)++;
     }
 
     // Free the line and return with a success value.
@@ -83,18 +88,18 @@ int stdintopa(point **points, size_t *len)
 
 int main(int argc, char *argv[]) {
 
-    point *total_points;
-    size_t len = 0;
+    point *points;
+    size_t stored = 0;
 
-    stdintopa(&total_points, &len);
+    stdintopa(&points, &stored);
 
-    if (total_points == NULL)
+    if (points == NULL)
     {
         exit(EXIT_FAILURE);
     }
 
-    for (int i = 0; i < len; i++) {
-        printf("Point %d: x = %f, y = %f\n", i + 1, total_points[i].x, total_points[i].y);
+    for (int i = 0; i < stored; i++) {
+        printf("Point %d: x = %f, y = %f\n", i + 1, points[i].x, points[i].y);
     }
 
     return 0;
