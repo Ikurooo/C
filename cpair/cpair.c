@@ -7,63 +7,91 @@ typedef struct {
     float y;
 } point;
 
-void printPoints(point *points, int size) {
-    for (int i = 0; i < size; i++) {
-        printf("Point %d: x = %f, y = %f\n", i, points[i].x, points[i].y);
-    }
-}
+point strtop(char *input) {
+    point p;
+    char *x_str = strtok(input, " ");
+    char *y_str = strtok(NULL, " ");
 
-void strpoint(char *line, point *pt) {
-    char *token = strtok(line, " ");
-    pt->x = strtof(token, NULL);
-    token = strtok(NULL, " ");
-    pt->y = strtof(token, NULL);
-}
-
-int dynarray(point *p, point **points, int *size, int *capacity) {
-    if (*size >= *capacity) {
-        *capacity *= 2;
-        point *newPoints = (point *)realloc(*points, (*capacity) * sizeof(point));
-
-        if (newPoints == NULL) {
-            free(*points);  // Free the original memory if realloc fails
-            return -1;
+    if (x_str == NULL || y_str == NULL) {
+        fprintf(stderr, "Error: Malformed input line\n");
+        exit(EXIT_FAILURE);
+    } else {
+        char *endptr;
+        p.x = strtof(x_str, &endptr);
+        if (*endptr != '\0') {
+            fprintf(stderr, "Error: Invalid float in the first part\n");
+            exit(EXIT_FAILURE);
         }
 
-        *points = newPoints;
+        p.y = strtof(y_str, &endptr);
+        if (*endptr != '\0') {
+            fprintf(stderr, "Error: Invalid float in the second part\n");
+            exit(EXIT_FAILURE);
+        }
     }
 
-    (*points)[*size] = *p;
-    (*size)++;
+    return p;
+}
 
+
+
+int stdintopa(point **points, size_t *len)
+{
+    // Create an dynamic array to store the points in.
+    size_t cap = 2;
+    *points = malloc(sizeof(point) * cap);
+    if (points == NULL)
+    {
+        return -1;
+    }
+
+    // Read stdin line by line.
+    char *line = NULL;
+    size_t linecap = 0;
+    while (getline(&line, &linecap, stdin) != -1)
+    {
+        // Resize
+        if (cap == *len)
+        {
+            cap *= 2;
+            point *tmp = realloc(*points, sizeof(point) * cap);
+            if (tmp == NULL)
+            {
+                free(line);
+                free(*points);
+                return -1;
+            }
+            *points = tmp;
+        }
+
+
+        point p = strtop(line);
+        (*points)[*len] = p;
+        (*len)++;
+    }
+
+    // Free the line and return with a success value.
+    free(line);
     return 0;
 }
 
 
-int main(void) {
-    char *line = NULL;
-    size_t size = 0;
-    point myPoint;
-    point *points[1];
-    int stored = 0;
-    int capacity = 2; // Initialize the capacity
+int main(int argc, char *argv[]) {
 
-    while (getline(&line, &size, stdin) != -1) {
-        strpoint(line, &myPoint);
-        printf("%f %f\n", myPoint.x, myPoint.y);
-        if (dynarray(&myPoint, &points, &stored, &capacity) == -1) {
-            fprintf(stderr, "Memory reallocation failed\n");
-            free(line);
-            free(points);
-            return 1;
-        }
+    point *total_points;
+    size_t len = 0;
+
+    stdintopa(&total_points, &len);
+
+    if (total_points == NULL)
+    {
+        exit(EXIT_FAILURE);
     }
 
-    printf("%d\n", stored);
-    printPoints(points, stored);
+    for (int i = 0; i < len; i++) {
+        printf("Point %d: x = %f, y = %f\n", i + 1, total_points[i].x, total_points[i].y);
+    }
 
-    free(line); // Free dynamically allocated memory
-    free(points); // Free the points array
     return 0;
 }
 
