@@ -8,7 +8,9 @@ typedef struct {
     float y;
 } point;
 
-int ptostdfile(FILE *file, point p) {}
+int ptofile(FILE *file, point *p) {
+    fprintf(file, "%f %f\n", p->x, p->y);
+}
 
 point strtop(char *input) {
     point p;
@@ -41,11 +43,6 @@ point strtop(char *input) {
 
     return p;
 }
-
-
-
-
-
 
 int stdintopa(point **points, size_t *stored)
 {
@@ -101,7 +98,7 @@ int main(int argc, char *argv[]) {
     }
 
     for (int i = 0; i < stored; i++) {
-        printf("Point %d: x = %f, y = %f\n", i + 1, points[i].x, points[i].y);
+        ptofile(stdout, &points[i]);
     }
 
     return 0;
