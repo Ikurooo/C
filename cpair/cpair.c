@@ -9,10 +9,14 @@ typedef struct {
 
 point strtop(char *input) {
     point p;
+
+    // strtok saves a string using a static variable and if NULL is passed in continues to work with that same string
+    // tokenise input
     char *x_str = strtok(input, " ");
     char *y_str = strtok(NULL, " ");
+    char *excess = strtok(NULL, " ");
 
-    if (x_str == NULL || y_str == NULL) {
+    if (x_str == NULL || y_str == NULL || excess != NULL) {
         fprintf(stderr, "Error: Malformed input line\n");
         exit(EXIT_FAILURE);
     } else {
