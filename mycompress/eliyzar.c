@@ -88,9 +88,8 @@ int main(int argc, char *argv[]) {
     if (outFile != stdout) {
         fclose(outFile);
     }
-
-    fprintf(stderr, "Read: %d characters\n", readCount);
     fprintf(stderr, "Written: %d characters\n", writeCount);
+    fprintf(stderr, "Read: %d characters\n", readCount);
 
     return EXIT_SUCCESS;
 }
