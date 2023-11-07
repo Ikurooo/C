@@ -2,32 +2,45 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <assert.h>
 
 void usage(const char *program_name) {
     fprintf(stderr, "[%s] Usage: %s [-o outfile] [file...]\n", program_name, program_name);
     exit(EXIT_FAILURE);
 }
 
-void compressAndWrite(char *buffer, FILE *outFile, int *writeCount) {
-    char lastChar = buffer[0];
-    int count = 1;
+void compressAndWrite(char *buffer, size_t len, FILE *outFile, int *writeCount) {
+    u_char lastChar;
+    u_char currentChar;
+    int count = 0;
 
-    for (int i = 1; buffer[i] != '\0'; ++i) {
-        if (lastChar == buffer[i]) {
-            count++;
-        } else {
-            int written = fprintf(outFile, "%c%d", lastChar, count);
-            if (written == -1) {
-                exit(EXIT_FAILURE);
-            }
-            *writeCount += written;
-            lastChar = buffer[i];
+    for (int i = 0; i < len; ++i) {
+
+        currentChar = buffer[i];
+
+        if (count == 0) {
+            lastChar = currentChar;
             count = 1;
+            continue;
         }
+
+        if (lastChar == currentChar) {
+            count++;
+            continue;
+        }
+
+        int written = fprintf(outFile, "%c%d", lastChar, count);
+        if (written == -1) {
+            exit(EXIT_FAILURE);
+        }
+
+        *writeCount += written;
+        lastChar = currentChar;
+        count = 1;
     }
 
-    fprintf(outFile, "\n");
-    *writeCount += 1;
+    int written = fprintf(outFile, "\n");
+    *writeCount += written;
 }
 
 int main(int argc, char *argv[]) {
@@ -36,10 +49,18 @@ int main(int argc, char *argv[]) {
     int opt;
 
     while ((opt = getopt(argc, argv, "o:")) != -1) {
-        if (opt == 'o' && outFileName == NULL) {
-            outFileName = optarg;
-        } else {
-            usage(process);
+        switch (opt) {
+            case 'o':
+                if (outFileName != NULL) {
+                    usage(process);
+                }
+                outFileName = optarg;
+                break;
+            case '?':
+                usage(process);
+                break;
+            default:
+                assert(0);
         }
     }
 
@@ -88,8 +109,8 @@ int main(int argc, char *argv[]) {
     if (outFile != stdout) {
         fclose(outFile);
     }
-    fprintf(stderr, "Written: %d characters\n", writeCount);
-    fprintf(stderr, "Read: %d characters\n", readCount);
+    fprintf(stderr, "READ: %d characters\n", readCount);
+    fprintf(stderr, "WRITTEN: %d characters\n", writeCount);
 
     return EXIT_SUCCESS;
 }
