@@ -36,6 +36,8 @@ void compressAndWrite(char *buffer, size_t len, FILE *outFile, int *writeCount) 
         }
 
         *writeCount += written;
+        lastChar = currentChar;
+        count = 1;
     }
     int written = fprintf(outFile, "\n");
     *writeCount += written;
