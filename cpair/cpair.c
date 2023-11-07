@@ -2,13 +2,23 @@
 #include <stdlib.h>
 #include <string.h>
 #include "unistd.h"
+#include "errno.h"
+#include "sys/wait.h"
+#include "sys/types.h"
 
 typedef struct {
     float x;
     float y;
 } point;
 
-void usage(const char *process) {
+const char *process;
+
+void error(char *message) {
+    fprintf(stderr, "%s ERROR: %s\n", process, message);
+    exit(EXIT_FAILURE);
+}
+
+void usage() {
     fprintf(stderr, "[%s] ERROR: %s does not accept any arguments.\n", process, process);
     exit(EXIT_FAILURE);
 }
@@ -37,8 +47,7 @@ point strtop(char *input) {
     char *y_str = strtok(NULL, "\n");
 
     if (x_str == NULL || y_str == NULL) {
-        fprintf(stderr, "Error: Malformed input line\n");
-        exit(EXIT_FAILURE);
+        error("Malformed line");
     }
 
     // strtof collects every unused char in the char pointer
@@ -49,13 +58,11 @@ point strtop(char *input) {
     p.y = strtof(y_str, &endptr_y);
 
     if (*endptr_x != '\0') {
-        fprintf(stderr, "Error: Malformed input line\n");
-        exit(EXIT_FAILURE);
+        error("Malformed input line");
     }
 
     if (*endptr_y != '\0') {
-        fprintf(stderr, "Error: Malformed input line\n");
-        exit(EXIT_FAILURE);
+        error("Malformed input line");
     }
 
     return p;
@@ -100,9 +107,10 @@ int stdintopa(point **points, size_t *stored)
 }
 
 
+
 int main(int argc, char *argv[]) {
 
-    const char *process = argv[0];
+    process = argv[0];
     if (argc != 1) {
         usage(process);
     }
@@ -115,12 +123,6 @@ int main(int argc, char *argv[]) {
     {
         exit(EXIT_FAILURE);
     }
-
-    for (int i = 0; i < stored; i++) {
-        ptofile(stdout, &points[i]);
-    }
-
-    printf("%f\n", meanpx(points, stored));
 
 
     switch (stored) {
@@ -173,6 +175,119 @@ int main(int argc, char *argv[]) {
 
         exit(EXIT_FAILURE);
     }
+
+    if (leftChild == 0) {
+        // 0 is the write end of a pipe
+        // 1 is the read end of a pipe
+
+        dup2(leftReadPipe[1], STDOUT_FILENO);
+        dup2(leftWritePipe[0], STDIN_FILENO);
+
+        // Close all pipes meant for the other child
+        close(rightReadPipe[0]);
+        close(rightReadPipe[1]);
+
+        close(rightWritePipe[0]);
+        close(rightWritePipe[1]);
+
+        // Close unused pipe ends
+        close(leftReadPipe[0]);
+        close(leftWritePipe[1]);
+
+        // Close unused pipes that were rerouted via dup2()
+        close(leftReadPipe[1]);
+        close(leftWritePipe[0]);
+
+        execlp(process, process, NULL);
+        fprintf(stderr, "[%s] ERROR: Cannot exec: %s\n", process, strerror(errno));
+        free(points);
+        exit(EXIT_FAILURE);
+    }
+
+    pid_t rightChild = fork();
+
+    if (rightChild == -1) {
+        fprintf(stderr, "[%s] ERROR: Cannot fork\n", process);
+        close(leftWritePipe[0]);
+        close(leftWritePipe[1]);
+
+        close(leftReadPipe[0]);
+        close(leftReadPipe[1]);
+
+        close(rightWritePipe[0]);
+        close(rightWritePipe[1]);
+
+        close(rightReadPipe[0]);
+        close(rightReadPipe[1]);
+
+        exit(EXIT_FAILURE);
+    }
+
+    if (rightChild == 0) {
+        // 0 is the write end of a pipe
+        // 1 is the read end of a pipe
+
+        dup2(rightReadPipe[1], STDOUT_FILENO);
+        dup2(rightWritePipe[0], STDIN_FILENO);
+
+        // Close all pipes meant for the other child
+        close(leftReadPipe[0]);
+        close(leftReadPipe[1]);
+
+        close(leftWritePipe[0]);
+        close(leftWritePipe[1]);
+
+        // Close unused pipe ends
+        close(rightReadPipe[0]);
+        close(rightWritePipe[1]);
+
+        // Close unused pipes that were rerouted via dup2()
+        close(rightReadPipe[1]);
+        close(rightWritePipe[0]);
+
+        execlp(process, process, NULL);
+        fprintf(stderr, "[%s] ERROR: Cannot exec: %s\n", process, strerror(errno));
+        free(points);
+        exit(EXIT_FAILURE);
+    }
+
+    // 0 is the write end of a pipe
+    // 1 is the read end of a pipe
+    // Close off unused pipe ends (parent)
+
+    close(leftWritePipe[1]);
+    close(rightWritePipe[1]);
+
+    close(leftReadPipe[0]);
+    close(rightReadPipe[0]);
+
+    // parent writes child reads
+    FILE *leftWriteFile = fdopen(leftWritePipe[0], "r");
+    FILE *rightWriteFile = fdopen(rightWritePipe[0], "r");
+
+    // child writes parent reads
+    FILE *leftReadFile = fdopen(leftReadPipe[1], "w");
+    FILE *rightReadFile = fdopen(rightReadPipe[1], "w");
+
+    float mean = meanpx(points, stored);
+    for (int i = 0; i < stored; i++) {
+        if (points[i].x <= mean) {
+            ptofile(leftWriteFile, &points[i]);
+        }
+    }
+    for (int i = 0; i < stored; i++) {
+        if (points[i].x > mean) {
+            ptofile(rightWriteFile, &points[i]);
+        }
+    }
+
+    int statusLeft, statusRight;
+    waitpid(leftChild, &statusLeft, 0);
+    waitpid(rightChild, &statusRight, 0);
+
+
+
+
 
     free(points);
     return 0;
