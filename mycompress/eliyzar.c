@@ -2,45 +2,32 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <assert.h>
 
 void usage(const char *program_name) {
     fprintf(stderr, "[%s] Usage: %s [-o outfile] [file...]\n", program_name, program_name);
     exit(EXIT_FAILURE);
 }
 
-void compressAndWrite(char *buffer, size_t len, FILE *outFile, int *writeCount) {
-    u_char lastChar;
-    u_char currentChar;
-    int count = 0;
+void compressAndWrite(char *buffer, FILE *outFile, int *writeCount) {
+    char lastChar = buffer[0];
+    int count = 1;
 
-    for (int i = 0; i < len; ++i) {
-
-        currentChar = buffer[i];
-
-        if (count == 0) {
-            lastChar = currentChar;
-            count = 1;
-            continue;
-        }
-
-        if (lastChar == currentChar) {
+    for (int i = 1; buffer[i] != '\0'; ++i) {
+        if (lastChar == buffer[i]) {
             count++;
-            continue;
+        } else {
+            int written = fprintf(outFile, "%c%d", lastChar, count);
+            if (written == -1) {
+                exit(EXIT_FAILURE);
+            }
+            *writeCount += written;
+            lastChar = buffer[i];
+            count = 1;
         }
-
-        int written = fprintf(outFile, "%c%d", lastChar, count);
-        if (written == -1) {
-            exit(EXIT_FAILURE);
-        }
-
-        *writeCount += written;
-        lastChar = currentChar;
-        count = 1;
     }
 
-    int written = fprintf(outFile, "\n");
-    *writeCount += written;
+    fprintf(outFile, "\n");
+    *writeCount += 1;
 }
 
 int main(int argc, char *argv[]) {
@@ -49,28 +36,17 @@ int main(int argc, char *argv[]) {
     int opt;
 
     while ((opt = getopt(argc, argv, "o:")) != -1) {
-        switch (opt) {
-            case 'o':
-                if (outFileName != NULL) {
-                    usage(process);
-                }
-                outFileName = optarg;
-                break;
-            case '?':
-                usage(process);
-                break;
-            default:
-                assert(0);
+        if (opt == 'o' && outFileName == NULL) {
+            outFileName = optarg;
+        } else {
+            usage(process);
         }
     }
 
-    FILE *outFile = stdout;
-    if (outFileName != NULL) {
-        outFile = fopen(outFileName, "w");
-        if (outFile == NULL) {
-            fprintf(stderr, "[%s] ERROR: An error occurred while opening file %s\n", process, outFileName);
-            exit(EXIT_FAILURE);
-        }
+    FILE *outFile = (outFileName != NULL) ? fopen(outFileName, "w") : stdout;
+    if (outFile == NULL) {
+        fprintf(stderr, "[%s] ERROR: An error occurred while opening file %s\n", process, outFileName);
+        exit(EXIT_FAILURE);
     }
 
     int readCount = 0;
@@ -81,7 +57,7 @@ int main(int argc, char *argv[]) {
         size_t size = 0;
 
         while (getline(&line, &size, stdin) != -1) {
-            compressAndWrite(line, strlen(line), outFile, &writeCount);
+            compressAndWrite(line, outFile, &writeCount);
             readCount += (int) strlen(line);
         }
         free(line);
@@ -101,15 +77,13 @@ int main(int argc, char *argv[]) {
         size_t size = 0;
 
         while (getline(&line, &size, inFile) != -1) {
-            compressAndWrite(line, strlen(line), outFile, &writeCount);
+            compressAndWrite(line, outFile, &writeCount);
             readCount += (int) strlen(line);
         }
         free(line);
 
         fclose(inFile);
     }
-
-
 
     if (outFile != stdout) {
         fclose(outFile);
