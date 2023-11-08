@@ -1,10 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
 #include "unistd.h"
 #include "errno.h"
 #include "sys/wait.h"
 #include "sys/types.h"
+#include "math.h"
+#include "float.h"
 
 typedef struct {
     float x;
@@ -102,7 +104,6 @@ int stdintopa(point **points, size_t *stored)
         (*stored)++;
     }
 
-    // Free the line and return with a success value.
     free(line);
     return 0;
 }
@@ -122,6 +123,42 @@ int ctop(FILE *file, point **points) {
     return stored;
 }
 
+int euclidean(point p1, point p2) {
+    return sqrt((pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)));
+}
+
+int closest(point *child1_points, point *child2_points, int countLeft, int countRight, point **points) {
+
+    float distance = FLT_MAX;
+    point *bestPoints[2];
+
+    for (int i = 0; i < 2; i++) {
+        bestPoints[i] = malloc(sizeof(point));
+        if (bestPoints[i] == NULL) {
+            fprintf(stderr, "Error: Memory allocation failed.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    for (int i = 0; i < countLeft; i++)
+    {
+        point temp1 = child1_points[i];
+        for (int j = 0; j < countRight; j++)
+        {
+            point temp2 = child2_points[j];
+            float new_dist = euclidean(temp1, temp2);
+            if (new_dist <= distance)
+            {
+                *bestPoints[0] = temp1;
+                *bestPoints[1] = temp2;
+                distance = new_dist;
+            }
+        }
+    }
+    *points = *bestPoints;
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
 
     process = argv[0];
@@ -137,7 +174,6 @@ int main(int argc, char *argv[]) {
     {
         exit(EXIT_FAILURE);
     }
-
 
     switch (stored) {
         case 0:
@@ -158,11 +194,11 @@ int main(int argc, char *argv[]) {
         default:
             break;
     }
-    // Child writes to this
+    // Parent writes to this
     int leftWritePipe[2];
     int rightWritePipe[2];
 
-    // Child reads from this
+    // Parent reads from this
     int leftReadPipe[2];
     int rightReadPipe[2];
 
@@ -194,9 +230,9 @@ int main(int argc, char *argv[]) {
     }
 
     if (leftChild == 0) {
-        // 0 is the write end of a pipe
-        // 1 is the read end of a pipe
-
+        // 1 is the write end of a pipe
+        // 0 is the read end of a pipe
+        // TODO: error handling
         dup2(leftReadPipe[1], STDOUT_FILENO);
         dup2(leftWritePipe[0], STDIN_FILENO);
 
@@ -241,9 +277,9 @@ int main(int argc, char *argv[]) {
     }
 
     if (rightChild == 0) {
-        // 0 is the write end of a pipe
-        // 1 is the read end of a pipe
-
+        // 1 is the write end of a pipe
+        // 0 is the read end of a pipe
+        // TODO: error handling
         dup2(rightReadPipe[1], STDOUT_FILENO);
         dup2(rightWritePipe[0], STDIN_FILENO);
 
@@ -268,8 +304,8 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // 0 is the write end of a pipe
-    // 1 is the read end of a pipe
+    // 1 is the write end of a pipe
+    // 0 is the read end of a pipe
     // Close off unused pipe ends (parent)
 
     close(leftWritePipe[0]);
@@ -307,14 +343,12 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < stored; i++) {
         if (points[i].x <= mean) {
             ptofile(leftWriteFile, &points[i]);
-            ptofile(stdout, &points[i]);
         }
     }
 
     for (int i = 0; i < stored; i++) {
         if (points[i].x > mean) {
             ptofile(rightWriteFile, &points[i]);
-            ptofile(stdout, &points[i]);
         }
     }
 
@@ -343,16 +377,19 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    printf("bruh.com\n");
     int a = ctop(leftReadFile, child1Points);
     int b = ctop(rightReadFile, child2Points);
 
-    printf("%i %i\n", a, b);
+    printf("Got from left: %i\nGot from right: %i\n", a, b);
 
     for (int i = 0; i < 2; i++) {
+        printf("Left at [%d]: ", i + 1);
         ptofile(stdout, child1Points[i]);
+        printf("Right at [%d]: ", i + 1);
         ptofile(stdout, child2Points[i]);
     }
+
+    // TODO: ask how i should combine the points
 
     free(points);
     return 0;
