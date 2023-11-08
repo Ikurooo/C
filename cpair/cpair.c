@@ -1,3 +1,11 @@
+/**
+ * @file cpair.c
+ * @author Ivan Cankov 12219400 <e12219400@student.tuwien.ac.at>
+ * @date 05.11.2023
+ *
+ * @brief A C program for finding the closest pair
+ **/
+
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
