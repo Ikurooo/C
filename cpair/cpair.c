@@ -39,6 +39,7 @@ float meanpx(point *points, size_t stored) {
     return sumpx(points, stored) / (float)stored;
 }
 
+// TODO: find tokenising bug
 point strtop(char *input) {
     point p;
 
@@ -106,23 +107,30 @@ int stdintopa(point **points, size_t *stored)
     return 0;
 }
 
-int ctop(FILE *file, point *points[2]) {
-
-    size_t len = 0;
+int ctop(FILE *file, point **points)
+{
     char *line = NULL;
+    size_t cap = 0;
 
-    int saved = 0;
-    for (int i = 0; i < 2; i++) {
-        if (getline(&line, &len, file) == -1) {
-            free(line);
-            return saved;
-        }
-        *points[i] = strtop(line);
-        saved++;
+    // Parse the first line
+    printf("soso");
+    if (getline(&line, &cap, file) == -1)
+    {
+        return 0;
     }
-    // Unreachable code something has to go really wrong for the function to return -1
+
+    printf("asas");
+    (*points)[0] = strtop(line);
+    // Parse the second line
+    if (getline(&line, &cap, file) == -1)
+    {
+        free(line);
+        return 1;
+    }
+    (*points)[1] = strtop(line);
+
     free(line);
-    return -1;
+    return 2;
 }
 
 
@@ -158,6 +166,7 @@ int main(int argc, char *argv[]) {
         case 2:
             ptofile(stdout, &points[0]);
             ptofile(stdout, &points[1]);
+            fflush(stdout);
             free(points);
             exit(EXIT_SUCCESS);
         default:
@@ -307,18 +316,14 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-
-
     float mean = meanpx(points, stored);
 
     for (int i = 0; i < stored; i++) {
         if (points[i].x <= mean) {
             ptofile(leftWriteFile, &points[i]);
-            ptofile(stdout, &points[i]);
         }
     }
 
-    printf("huh\n");
     for (int i = 0; i < stored; i++) {
         if (points[i].x > mean) {
             ptofile(rightWriteFile, &points[i]);
@@ -338,10 +343,21 @@ int main(int argc, char *argv[]) {
     if (WEXITSTATUS(statusRight) == EXIT_FAILURE) {exit(EXIT_FAILURE);}
 
 
-    point *combined;
-    size_t combinedAmount = 0;
+    point *child1Points[2];
+    point *child2Points[2];
+    printf("bruh.com\n");
+    int a = ctop(leftReadFile, child1Points);
+    int b = ctop(rightReadFile, child2Points);
 
+    printf("%i %i\n", a, b);
 
+//    for (int i = 0; i < 2; i++) {
+//        ptofile(stdout, child1Points[i]);
+//        ptofile(stdout, child2Points[i]);
+//    }
+//
+//    free(child1Points);
+//    free(child2Points);
 
     free(points);
     return 0;
