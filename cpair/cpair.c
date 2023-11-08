@@ -127,37 +127,6 @@ int euclidean(point p1, point p2) {
     return sqrt((pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)));
 }
 
-int closest(point *child1_points, point *child2_points, int countLeft, int countRight, point **points) {
-
-    float distance = FLT_MAX;
-    point *bestPoints[2];
-
-    for (int i = 0; i < 2; i++) {
-        bestPoints[i] = malloc(sizeof(point));
-        if (bestPoints[i] == NULL) {
-            fprintf(stderr, "Error: Memory allocation failed.\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    for (int i = 0; i < countLeft; i++)
-    {
-        point temp1 = child1_points[i];
-        for (int j = 0; j < countRight; j++)
-        {
-            point temp2 = child2_points[j];
-            float new_dist = euclidean(temp1, temp2);
-            if (new_dist <= distance)
-            {
-                *bestPoints[0] = temp1;
-                *bestPoints[1] = temp2;
-                distance = new_dist;
-            }
-        }
-    }
-    *points = *bestPoints;
-    return 0;
-}
 
 int main(int argc, char *argv[]) {
 
