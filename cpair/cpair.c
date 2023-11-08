@@ -6,7 +6,6 @@
 #include "sys/wait.h"
 #include "sys/types.h"
 #include "math.h"
-#include "float.h"
 
 typedef struct {
     float x;
@@ -15,33 +14,51 @@ typedef struct {
 
 const char *process;
 
+/**
+ * @brief Print an error message to stderr and exit the process with EXIT_FAILURE.
+ */
 void error(char *message) {
     fprintf(stderr, "%s ERROR: %s\n", process, message);
     exit(EXIT_FAILURE);
 }
 
+/**
+ * @brief Print a usage message to stderr and exit the process with EXIT_FAILURE.
+ */
 void usage() {
     fprintf(stderr, "[%s] ERROR: %s does not accept any arguments.\n", process, process);
     exit(EXIT_FAILURE);
 }
 
+/**
+ * @brief Prints a point to a file
+ * @details It is assumed that both parameters are valid
+ * @param file The file you intend to write to
+ * @param p The point you intend to write to the file
+ */
 int ptofile(FILE *file, point *p) {
     fprintf(file, "%f %f\n", p->x, p->y);
 }
 
-float sumpx(point *points, size_t stored) {
+/**
+ * @brief Returns the mean of the x values of a point array
+ * @details It is assumed that both parameters are valid
+ * @param points The point array you intend to calculate the mean of
+ * @param stored The amount of points in the point array
+ */
+float meanpx(point *points, size_t stored) {
     float sum = 0;
     for (int i = 0; i < stored; i++) {
         sum += (points)[i].x;
     }
-    return sum;
+    return sum / (float)stored;
 }
 
-float meanpx(point *points, size_t stored) {
-    return sumpx(points, stored) / (float)stored;
-}
-
-// TODO: find tokenising bug
+/**
+ * @brief Parses a string to a point
+ * @details Throws an error and exits if the string is not of a valid format
+ * @param input The string you intend to covert to a point
+ */
 point strtop(char *input) {
     point p;
 
@@ -71,28 +88,35 @@ point strtop(char *input) {
     return p;
 }
 
+/**
+ * @brief Closes all ends of both child pipe
+ * @details It is assumed that all necessary file descriptor duplications were done
+ * prior to calling this function
+ * @param rightReadPipe The right parent read pipe that you intend to close.
+ * @param leftReadPipe The left parent read pipe that you intend to close.
+ * @param rightWritePipe The left parent write pipe that you intend to close.
+ * @param leftWritePipe The left parent write pipe that you intend to close.
+ */
 void closepipes(int rightReadPipe[2], int leftReadPipe[2], int rightWritePipe[2], int leftWritePipe[2]) {
-    // Close all pipes meant for the other child
     close(rightReadPipe[0]);
     close(rightReadPipe[1]);
 
     close(rightWritePipe[0]);
     close(rightWritePipe[1]);
 
-    // Close unused pipe ends
     close(leftReadPipe[0]);
     close(leftWritePipe[1]);
 
-    // Close unused pipes that were rerouted via dup2()
     close(leftReadPipe[1]);
     close(leftWritePipe[0]);
 }
 
-int stdintopa(point **points, size_t *stored)
+ssize_t stdintopa(point **points)
 {
-    // Create an dynamic array to store the points in.
+    ssize_t stored = 0;
     size_t capacity = 2;
     *points = malloc(sizeof(point) * capacity);
+
     if (points == NULL)
     {
         return -1;
@@ -103,7 +127,7 @@ int stdintopa(point **points, size_t *stored)
     while (getline(&line, &linelen, stdin) != -1)
     {
         // Resize
-        if (capacity == *stored)
+        if (capacity == stored)
         {
             capacity *= 2;
             point *tmp = realloc(*points, sizeof(point) * capacity);
@@ -117,19 +141,19 @@ int stdintopa(point **points, size_t *stored)
         }
 
         point p = strtop(line);
-        (*points)[*stored] = p;
-        (*stored)++;
+        (*points)[stored] = p;
+        stored++;
     }
 
     free(line);
-    return 0;
+    return stored;
 }
 
-int ctop(FILE *file, point points[2]) {
+size_t ctop(FILE *file, point points[2]) {
 
+    size_t stored = 0;
     size_t size = 0;
     char *line = NULL;
-    int stored = 0;
 
     while((getline(&line, &size, file)) != -1) {
         // TODO: ask what the difference is between *points[stored] and (*points)[stored]
@@ -144,20 +168,19 @@ int euclidean(point p1, point p2) {
     return sqrt((pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)));
 }
 
-
 int main(int argc, char *argv[]) {
 
     process = argv[0];
     if (argc != 1) {
-        usage(process);
+        usage();
     }
 
     point *points;
-    size_t stored = 0;
-    stdintopa(&points, &stored);
+    ssize_t stored;
 
-    if (points == NULL)
+    if ((stored = stdintopa(&points)) == -1)
     {
+        error("Failed to allocate memory");
         exit(EXIT_FAILURE);
     }
 
@@ -303,10 +326,10 @@ int main(int argc, char *argv[]) {
     point child1Points[2];
     point child2Points[2];
 
-    int a = ctop(leftReadFile, child1Points);
-    int b = ctop(rightReadFile, child2Points);
+    size_t a = ctop(leftReadFile, child1Points);
+    size_t b = ctop(rightReadFile, child2Points);
 
-    printf("Got from left: %i\nGot from right: %i\n", a, b);
+    printf("Got from left: %zu\nGot from right: %zu\n", a, b);
     for (int i = 0; i < 2; i++) {
         printf("Left at [%d]: ", i + 1);
         ptofile(stdout, &child1Points[i]);
