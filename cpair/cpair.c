@@ -106,6 +106,26 @@ int stdintopa(point **points, size_t *stored)
     return 0;
 }
 
+int ctop(FILE *file, point *points[2]) {
+
+    size_t len = 0;
+    char *line = NULL;
+
+    int saved = 0;
+    for (int i = 0; i < 2; i++) {
+        if (getline(&line, &len, file) == -1) {
+            free(line);
+            return saved;
+        }
+        *points[i] = strtop(line);
+        saved++;
+    }
+    // Unreachable code something has to go really wrong for the function to return -1
+    free(line);
+    return -1;
+}
+
+
 
 
 int main(int argc, char *argv[]) {
@@ -143,9 +163,11 @@ int main(int argc, char *argv[]) {
         default:
             break;
     }
-
+    // Child writes to this
     int leftWritePipe[2];
     int rightWritePipe[2];
+
+    // Child reads from this
     int leftReadPipe[2];
     int rightReadPipe[2];
 
@@ -255,37 +277,69 @@ int main(int argc, char *argv[]) {
     // 1 is the read end of a pipe
     // Close off unused pipe ends (parent)
 
-    close(leftWritePipe[1]);
-    close(rightWritePipe[1]);
+    close(leftWritePipe[0]);
+    close(rightWritePipe[0]);
 
-    close(leftReadPipe[0]);
-    close(rightReadPipe[0]);
+    close(leftReadPipe[1]);
+    close(rightReadPipe[1]);
 
     // parent writes child reads
-    FILE *leftWriteFile = fdopen(leftWritePipe[0], "r");
-    FILE *rightWriteFile = fdopen(rightWritePipe[0], "r");
+    FILE *leftWriteFile = fdopen(leftWritePipe[1], "w");
+    FILE *rightWriteFile = fdopen(rightWritePipe[1], "w");
 
     // child writes parent reads
-    FILE *leftReadFile = fdopen(leftReadPipe[1], "w");
-    FILE *rightReadFile = fdopen(rightReadPipe[1], "w");
+    FILE *leftReadFile = fdopen(leftReadPipe[0], "r");
+    FILE *rightReadFile = fdopen(rightReadPipe[0], "r");
+
+    if (leftReadFile == NULL || leftWriteFile == NULL ||
+        rightReadFile == NULL || rightWriteFile == NULL)
+    {
+        fprintf(stderr, "[%s] ERROR: Cannot create file descriptor: %s\n",
+                process, strerror(errno));
+        free(points);
+        close(leftReadPipe[0]);
+        close(rightReadPipe[0]);
+        close(leftWritePipe[1]);
+        close(rightReadPipe[1]);
+        int statusLeft, statusRight;
+        waitpid(leftChild, &statusLeft, 0);
+        waitpid(rightChild, &statusRight, 0);
+        exit(EXIT_FAILURE);
+    }
+
+
 
     float mean = meanpx(points, stored);
+
     for (int i = 0; i < stored; i++) {
         if (points[i].x <= mean) {
             ptofile(leftWriteFile, &points[i]);
+            ptofile(stdout, &points[i]);
         }
     }
+
+    printf("huh\n");
     for (int i = 0; i < stored; i++) {
         if (points[i].x > mean) {
             ptofile(rightWriteFile, &points[i]);
         }
     }
 
+    fflush(leftWriteFile);
+    fflush(rightWriteFile);
+    fclose(leftWriteFile);
+    fclose(rightWriteFile);
+
     int statusLeft, statusRight;
     waitpid(leftChild, &statusLeft, 0);
     waitpid(rightChild, &statusRight, 0);
 
+    if (WEXITSTATUS(statusLeft) == EXIT_FAILURE) {exit(EXIT_FAILURE);}
+    if (WEXITSTATUS(statusRight) == EXIT_FAILURE) {exit(EXIT_FAILURE);}
 
+
+    point *combined;
+    size_t combinedAmount = 0;
 
 
 
