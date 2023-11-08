@@ -308,15 +308,11 @@ int main(int argc, char *argv[]) {
     }
 
     float mean = meanpx(points, stored);
-
     for (int i = 0; i < stored; i++) {
         if (points[i].x <= mean) {
             ptofile(leftWriteFile, &points[i]);
         }
-    }
-
-    for (int i = 0; i < stored; i++) {
-        if (points[i].x > mean) {
+        else {
             ptofile(rightWriteFile, &points[i]);
         }
     }
@@ -326,6 +322,7 @@ int main(int argc, char *argv[]) {
     fclose(leftWriteFile);
     fclose(rightWriteFile);
 
+    // TODO: Add error handling
     int statusLeft, statusRight;
     waitpid(leftChild, &statusLeft, 0);
     waitpid(rightChild, &statusRight, 0);
@@ -333,7 +330,7 @@ int main(int argc, char *argv[]) {
     if (WEXITSTATUS(statusLeft) == EXIT_FAILURE) {exit(EXIT_FAILURE);}
     if (WEXITSTATUS(statusRight) == EXIT_FAILURE) {exit(EXIT_FAILURE);}
 
-
+    // TODO: ask why this doesn't work without malloc
     point *child1Points[2];
     point *child2Points[2];
 
@@ -350,7 +347,6 @@ int main(int argc, char *argv[]) {
     int b = ctop(rightReadFile, child2Points);
 
     printf("Got from left: %i\nGot from right: %i\n", a, b);
-
     for (int i = 0; i < 2; i++) {
         printf("Left at [%d]: ", i + 1);
         ptofile(stdout, child1Points[i]);
@@ -358,7 +354,7 @@ int main(int argc, char *argv[]) {
         ptofile(stdout, child2Points[i]);
     }
 
-    // TODO: ask how i should combine the points
+    // TODO: ask how i should combine the points cause i really don't understand
 
     free(points);
     return 0;
