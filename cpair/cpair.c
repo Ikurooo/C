@@ -71,6 +71,23 @@ point strtop(char *input) {
     return p;
 }
 
+void closepipes(int rightReadPipe[2], int leftReadPipe[2], int rightWritePipe[2], int leftWritePipe[2]) {
+    // Close all pipes meant for the other child
+    close(rightReadPipe[0]);
+    close(rightReadPipe[1]);
+
+    close(rightWritePipe[0]);
+    close(rightWritePipe[1]);
+
+    // Close unused pipe ends
+    close(leftReadPipe[0]);
+    close(leftWritePipe[1]);
+
+    // Close unused pipes that were rerouted via dup2()
+    close(leftReadPipe[1]);
+    close(leftWritePipe[0]);
+}
+
 int stdintopa(point **points, size_t *stored)
 {
     // Create an dynamic array to store the points in.
@@ -108,7 +125,7 @@ int stdintopa(point **points, size_t *stored)
     return 0;
 }
 
-int ctop(FILE *file, point **points) {
+int ctop(FILE *file, point points[2]) {
 
     size_t size = 0;
     char *line = NULL;
@@ -116,7 +133,7 @@ int ctop(FILE *file, point **points) {
 
     while((getline(&line, &size, file)) != -1) {
         // TODO: ask what the difference is between *points[stored] and (*points)[stored]
-        *points[stored] = strtop(line);
+        points[stored] = strtop(line);
         stored++;
     }
     free(line);
@@ -183,18 +200,7 @@ int main(int argc, char *argv[]) {
 
     if (leftChild == -1) {
         fprintf(stderr, "[%s] ERROR: Cannot fork\n", process);
-        close(leftWritePipe[0]);
-        close(leftWritePipe[1]);
-
-        close(leftReadPipe[0]);
-        close(leftReadPipe[1]);
-
-        close(rightWritePipe[0]);
-        close(rightWritePipe[1]);
-
-        close(rightReadPipe[0]);
-        close(rightReadPipe[1]);
-
+        closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
         exit(EXIT_FAILURE);
     }
 
@@ -205,20 +211,7 @@ int main(int argc, char *argv[]) {
         dup2(leftReadPipe[1], STDOUT_FILENO);
         dup2(leftWritePipe[0], STDIN_FILENO);
 
-        // Close all pipes meant for the other child
-        close(rightReadPipe[0]);
-        close(rightReadPipe[1]);
-
-        close(rightWritePipe[0]);
-        close(rightWritePipe[1]);
-
-        // Close unused pipe ends
-        close(leftReadPipe[0]);
-        close(leftWritePipe[1]);
-
-        // Close unused pipes that were rerouted via dup2()
-        close(leftReadPipe[1]);
-        close(leftWritePipe[0]);
+        closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
 
         execlp(process, process, NULL);
         fprintf(stderr, "[%s] ERROR: Cannot exec: %s\n", process, strerror(errno));
@@ -230,17 +223,8 @@ int main(int argc, char *argv[]) {
 
     if (rightChild == -1) {
         fprintf(stderr, "[%s] ERROR: Cannot fork\n", process);
-        close(leftWritePipe[0]);
-        close(leftWritePipe[1]);
 
-        close(leftReadPipe[0]);
-        close(leftReadPipe[1]);
-
-        close(rightWritePipe[0]);
-        close(rightWritePipe[1]);
-
-        close(rightReadPipe[0]);
-        close(rightReadPipe[1]);
+        closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
 
         exit(EXIT_FAILURE);
     }
@@ -252,20 +236,7 @@ int main(int argc, char *argv[]) {
         dup2(rightReadPipe[1], STDOUT_FILENO);
         dup2(rightWritePipe[0], STDIN_FILENO);
 
-        // Close all pipes meant for the other child
-        close(leftReadPipe[0]);
-        close(leftReadPipe[1]);
-
-        close(leftWritePipe[0]);
-        close(leftWritePipe[1]);
-
-        // Close unused pipe ends
-        close(rightReadPipe[0]);
-        close(rightWritePipe[1]);
-
-        // Close unused pipes that were rerouted via dup2()
-        close(rightReadPipe[1]);
-        close(rightWritePipe[0]);
+        closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
 
         execlp(process, process, NULL);
         fprintf(stderr, "[%s] ERROR: Cannot exec: %s\n", process, strerror(errno));
@@ -294,13 +265,11 @@ int main(int argc, char *argv[]) {
     if (leftReadFile == NULL || leftWriteFile == NULL ||
         rightReadFile == NULL || rightWriteFile == NULL)
     {
-        fprintf(stderr, "[%s] ERROR: Cannot create file descriptor: %s\n",
-                process, strerror(errno));
+        fprintf(stderr, "[%s] ERROR: Cannot create file descriptor: %s\n", process, strerror(errno));
+
         free(points);
-        close(leftReadPipe[0]);
-        close(rightReadPipe[0]);
-        close(leftWritePipe[1]);
-        close(rightReadPipe[1]);
+        closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
+
         int statusLeft, statusRight;
         waitpid(leftChild, &statusLeft, 0);
         waitpid(rightChild, &statusRight, 0);
@@ -331,17 +300,8 @@ int main(int argc, char *argv[]) {
     if (WEXITSTATUS(statusRight) == EXIT_FAILURE) {exit(EXIT_FAILURE);}
 
     // TODO: ask why this doesn't work without malloc
-    point *child1Points[2];
-    point *child2Points[2];
-
-    for (int i = 0; i < 2; i++) {
-        child1Points[i] = malloc(sizeof(point));
-        child2Points[i] = malloc(sizeof(point));
-        if (child1Points[i] == NULL || child2Points[i] == NULL) {
-            fprintf(stderr, "Error: Memory allocation failed.\n");
-            exit(EXIT_FAILURE);
-        }
-    }
+    point child1Points[2];
+    point child2Points[2];
 
     int a = ctop(leftReadFile, child1Points);
     int b = ctop(rightReadFile, child2Points);
@@ -349,9 +309,9 @@ int main(int argc, char *argv[]) {
     printf("Got from left: %i\nGot from right: %i\n", a, b);
     for (int i = 0; i < 2; i++) {
         printf("Left at [%d]: ", i + 1);
-        ptofile(stdout, child1Points[i]);
+        ptofile(stdout, &child1Points[i]);
         printf("Right at [%d]: ", i + 1);
-        ptofile(stdout, child2Points[i]);
+        ptofile(stdout, &child2Points[i]);
     }
 
     // TODO: ask how i should combine the points cause i really don't understand
