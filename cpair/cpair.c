@@ -111,6 +111,13 @@ void closepipes(int rightReadPipe[2], int leftReadPipe[2], int rightWritePipe[2]
     close(leftWritePipe[0]);
 }
 
+/**
+ * @brief Converts standard in to a point array
+ * @details Dynamically allocates memory to store the points
+ * @param points A pointer to an UNINITIALISED point array
+ * @return A signed size that indicates the size of the array
+ * -1 if it was unable to allocate memory
+ */
 ssize_t stdintopa(point **points)
 {
     ssize_t stored = 0;
@@ -149,6 +156,12 @@ ssize_t stdintopa(point **points)
     return stored;
 }
 
+/**
+ * @brief Converts child output to an array of (max) 2 points
+ * @param file The file to which the child has written its output
+ * @param points An INITIALISED array of points
+ * @return An unsigned size that indicates the amount of points written
+ */
 size_t ctop(FILE *file, point points[2]) {
 
     size_t stored = 0;
