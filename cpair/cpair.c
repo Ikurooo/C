@@ -107,34 +107,20 @@ int stdintopa(point **points, size_t *stored)
     return 0;
 }
 
-int ctop(FILE *file, point **points)
-{
+int ctop(FILE *file, point **points) {
+
+    size_t size = 0;
     char *line = NULL;
-    size_t cap = 0;
+    int stored = 0;
 
-    // Parse the first line
-    printf("soso");
-    if (getline(&line, &cap, file) == -1)
-    {
-        return 0;
+    while((getline(&line, &size, file)) != -1) {
+        // TODO: ask what the difference is between *points[stored] and (*points)[stored]
+        *points[stored] = strtop(line);
+        stored++;
     }
-
-    printf("asas");
-    (*points)[0] = strtop(line);
-    // Parse the second line
-    if (getline(&line, &cap, file) == -1)
-    {
-        free(line);
-        return 1;
-    }
-    (*points)[1] = strtop(line);
-
     free(line);
-    return 2;
+    return stored;
 }
-
-
-
 
 int main(int argc, char *argv[]) {
 
@@ -321,12 +307,14 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < stored; i++) {
         if (points[i].x <= mean) {
             ptofile(leftWriteFile, &points[i]);
+            ptofile(stdout, &points[i]);
         }
     }
 
     for (int i = 0; i < stored; i++) {
         if (points[i].x > mean) {
             ptofile(rightWriteFile, &points[i]);
+            ptofile(stdout, &points[i]);
         }
     }
 
@@ -345,19 +333,26 @@ int main(int argc, char *argv[]) {
 
     point *child1Points[2];
     point *child2Points[2];
+
+    for (int i = 0; i < 2; i++) {
+        child1Points[i] = malloc(sizeof(point));
+        child2Points[i] = malloc(sizeof(point));
+        if (child1Points[i] == NULL || child2Points[i] == NULL) {
+            fprintf(stderr, "Error: Memory allocation failed.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
     printf("bruh.com\n");
     int a = ctop(leftReadFile, child1Points);
     int b = ctop(rightReadFile, child2Points);
 
     printf("%i %i\n", a, b);
 
-//    for (int i = 0; i < 2; i++) {
-//        ptofile(stdout, child1Points[i]);
-//        ptofile(stdout, child2Points[i]);
-//    }
-//
-//    free(child1Points);
-//    free(child2Points);
+    for (int i = 0; i < 2; i++) {
+        ptofile(stdout, child1Points[i]);
+        ptofile(stdout, child2Points[i]);
+    }
 
     free(points);
     return 0;
