@@ -14,6 +14,7 @@
 #include "sys/wait.h"
 #include "sys/types.h"
 #include "math.h"
+#include "float.h"
 
 typedef struct {
     float x;
@@ -185,9 +186,68 @@ size_t ctop(FILE *file, point points[2]) {
     return stored;
 }
 
-int euclidean(point p1, point p2) {
-    return sqrt((pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)));
+/**
+ * @brief Calculates the euclidean distance of 2 points
+ * @param p1
+ * @param p2
+ * @return
+ */
+float euclidean(point p1, point p2) {
+    return sqrtf((float)(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)));
 }
+
+/**
+ * @brief Black magic function
+ * @param a The amount of points read from left child
+ * @param leftChild The (max) 2 points of the left child
+ * @param b The amount of points read from right child
+ * @param rightChild The (max) 2 points of the right child
+ * @param mergedChildren The best result from both children
+ * @return -1 if one of the children had an error 0 if merge was successful
+ */
+
+int merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point mergedChildren[2]) {
+    float nearest = FLT_MAX;
+
+    if (b == 0 || a == 0) {
+        return -1;
+    }
+
+    for (size_t i = 0; i < a; ++i) {
+        for (size_t j = 0; j < b; ++j) {
+            float dist = euclidean(leftChild[i], rightChild[j]);
+            if (dist < nearest) {
+                nearest = dist;
+                mergedChildren[0] = leftChild[i];
+                mergedChildren[1] = rightChild[j];
+            }
+        }
+    }
+    return 0;
+}
+
+void printPairSorted(FILE *file, point pair[2]) {
+    if (pair[0].x == pair[1].x) {
+        // If x values are equal, sort based on y values
+        if (pair[0].y <= pair[1].y) {
+            ptofile(file, &pair[0]);
+            ptofile(file, &pair[1]);
+        } else {
+            ptofile(file, &pair[1]);
+            ptofile(file, &pair[0]);
+        }
+    } else {
+        // If x values are different, sort based on x values
+        if (pair[0].x < pair[1].x) {
+            ptofile(file, &pair[0]);
+            ptofile(file, &pair[1]);
+        } else {
+            ptofile(file, &pair[1]);
+            ptofile(file, &pair[0]);
+        }
+    }
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -216,8 +276,7 @@ int main(int argc, char *argv[]) {
             exit(EXIT_SUCCESS);
             break;
         case 2:
-            ptofile(stdout, &points[0]);
-            ptofile(stdout, &points[1]);
+            printPairSorted(stdout, points);
             fflush(stdout);
             free(points);
             exit(EXIT_SUCCESS);
@@ -340,25 +399,21 @@ int main(int argc, char *argv[]) {
     waitpid(leftChild, &statusLeft, 0);
     waitpid(rightChild, &statusRight, 0);
 
+    // TODO: add closing and freeing if child dies
     if (WEXITSTATUS(statusLeft) == EXIT_FAILURE) {exit(EXIT_FAILURE);}
     if (WEXITSTATUS(statusRight) == EXIT_FAILURE) {exit(EXIT_FAILURE);}
 
     // TODO: ask why this doesn't work without malloc
     point child1Points[2];
     point child2Points[2];
+    point mergedChildren[2];
 
     size_t a = ctop(leftReadFile, child1Points);
     size_t b = ctop(rightReadFile, child2Points);
 
-    printf("Got from left: %zu\nGot from right: %zu\n", a, b);
-    for (int i = 0; i < 2; i++) {
-        printf("Left at [%d]: ", i + 1);
-        ptofile(stdout, &child1Points[i]);
-        printf("Right at [%d]: ", i + 1);
-        ptofile(stdout, &child2Points[i]);
-    }
+    merge(a, child1Points, b, child2Points, mergedChildren);
 
-    // TODO: ask how i should combine the points cause i really don't understand
+    printPairSorted(stdout, mergedChildren);
 
     free(points);
     return 0;
