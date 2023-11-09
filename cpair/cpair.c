@@ -81,9 +81,11 @@ point strtop(char *input) {
 
     // strtof collects every unused char in the char pointer
     char *endptr_x;
+    fprintf(stderr, "%s\n", x_str);
     p.x = strtof(x_str, &endptr_x);
 
     char *endptr_y;
+    fprintf(stderr, "%s\n", y_str);
     p.y = strtof(y_str, &endptr_y);
 
     if (*endptr_x != '\0') {
@@ -178,8 +180,11 @@ size_t ctop(FILE *file, point points[2]) {
     char *line = NULL;
 
     while((getline(&line, &size, file)) != -1) {
+        fprintf(stderr, "writing to parent: %s\n", line);
         // TODO: ask what the difference is between *points[stored] and (*points)[stored]
         points[stored] = strtop(line);
+        fprintf(stderr, "Writing point to parent :");
+        ptofile(stderr, &points[stored]);
         stored++;
     }
     free(line);
@@ -276,8 +281,11 @@ int main(int argc, char *argv[]) {
             exit(EXIT_SUCCESS);
             break;
         case 2:
-            printPairSorted(stdout, points);
-            fflush(stdout);
+            fprintf(stderr, "Child writing: ");
+            ptofile(stderr, &points[0]);
+            ptofile(stderr, &points[1]);
+            ptofile(stdout, &points[0]);
+            ptofile(stdout, &points[1]);
             free(points);
             exit(EXIT_SUCCESS);
         default:
@@ -413,7 +421,8 @@ int main(int argc, char *argv[]) {
 
     merge(a, child1Points, b, child2Points, mergedChildren);
 
-    printPairSorted(stdout, mergedChildren);
+    ptofile(stdout, &mergedChildren[0]);
+    ptofile(stdout, &mergedChildren[1]);
 
     free(points);
     return 0;
