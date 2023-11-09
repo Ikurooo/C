@@ -14,6 +14,7 @@
 #include "sys/wait.h"
 #include "sys/types.h"
 #include "math.h"
+#include "ctype.h"
 
 typedef struct {
     float x;
@@ -45,7 +46,7 @@ void usage() {
  * @param p The point you intend to write to the file
  */
 int ptofile(FILE *file, point *p) {
-    fprintf(file, "%f %f\n", p->x, p->y);
+    fprintf(file, "%.3f %.3f\n", p->x, p->y);
 }
 
 /**
@@ -62,38 +63,60 @@ float meanpx(point *points, size_t stored) {
     return sum / (float)stored;
 }
 
+int is_float(char *str) {
+    char *endptr;
+    errno = 0;  // To distinguish success/failure after the call to strtod
+
+    strtod(str, &endptr); //convert to a double
+
+    // Check for various possible errors
+    if (endptr == str) return 1;
+    if (isspace((unsigned char) *str)) return 1;
+    if (*endptr != '\0') return 1;
+    if (errno == ERANGE) return 1;
+
+    // If we get here, it's a float
+    return 0;
+}
+
 /**
  * @brief Parses a string to a point
  * @details Throws an error and exits if the string is not of a valid format
  * @param input The string you intend to covert to a point
  */
-point strtop(char *input) {
-    point p;
+point strtop(char *string) {
+    int amountOfSpaces = 0;
+    float x;
+    float y;
 
-    // strtok statically binds the input string and if NULL is given works on with the last string passed  in
-    char *x_str = strtok(input, " ");
-    char *y_str = strtok(NULL, "\n");
-
-    if (x_str == NULL || y_str == NULL) {
-        error("Malformed line");
+//    fprintf(stderr, "Input string: %s", string);
+    for (int i = 0; i < strlen(string); ++i) if (string[i] == ' ') amountOfSpaces++;
+    if (string == NULL || amountOfSpaces != 1) {
+        fprintf(stderr, "[%s] ERROR: There must only be 2 coordinates. Not more, not less! %s\n", process, string);
+        exit(EXIT_FAILURE);
     }
 
-    // strtof collects every unused char in the char pointer
-    char *endptr_x;
-    p.x = strtof(x_str, &endptr_x);
-
-    char *endptr_y;
-    p.y = strtof(y_str, &endptr_y);
-
-    if (*endptr_x != '\0') {
-        error("Malformed input line");
+    // Extract the first token
+    char *token = strtok(string, " ");
+    if (token != NULL) x = strtof(token, NULL);
+    else {
+        fprintf(stderr, "[%s] ERROR: The first coordinate is not a float: %s\n", process, token);
+        exit(EXIT_FAILURE);
     }
 
-    if (*endptr_y != '\0') {
-        error("Malformed input line");
+
+    token = strtok(NULL, " ");
+    if (token != NULL) y = strtof(token, NULL);
+    else {
+        fprintf(stderr, "[%s] ERROR: The second coordinate is not a float: %s\n", process, token);
+        exit(EXIT_FAILURE);
     }
 
-    return p;
+    point point;
+    point.x = x;
+    point.y = y;
+
+    return point;
 }
 
 /**
@@ -205,6 +228,8 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    fprintf(stderr, "stored: %zu\n", stored);
+
     switch (stored) {
         case 0:
             fprintf(stderr, "[%s] ERROR: No points provided via stdin!\n", process);
@@ -218,6 +243,8 @@ int main(int argc, char *argv[]) {
         case 2:
             ptofile(stdout, &points[0]);
             ptofile(stdout, &points[1]);
+            ptofile(stderr, &points[0]);
+            ptofile(stderr, &points[1]);
             fflush(stdout);
             free(points);
             exit(EXIT_SUCCESS);
@@ -350,12 +377,11 @@ int main(int argc, char *argv[]) {
     size_t a = ctop(leftReadFile, child1Points);
     size_t b = ctop(rightReadFile, child2Points);
 
-    printf("Got from left: %zu\nGot from right: %zu\n", a, b);
     for (int i = 0; i < 2; i++) {
-        printf("Left at [%d]: ", i + 1);
-        ptofile(stdout, &child1Points[i]);
-        printf("Right at [%d]: ", i + 1);
-        ptofile(stdout, &child2Points[i]);
+        fprintf(stderr, "Left at [%d]: ", i + 1);
+        ptofile(stderr, &child1Points[i]);
+        fprintf(stderr,"Right at [%d]: ", i + 1);
+        ptofile(stderr, &child2Points[i]);
     }
 
     // TODO: ask how i should combine the points cause i really don't understand
