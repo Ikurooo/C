@@ -63,39 +63,45 @@ float meanpx(point *points, size_t stored) {
     return sum / (float)stored;
 }
 
+void strip(char *line)
+{
+    size_t len = strlen(line);
+    if (line[len - 1] == '\n')
+    {
+        line[len - 1] = '\0';
+    }
+}
+
 /**
  * @brief Parses a string to a point
  * @details Throws an error and exits if the string is not of a valid format
  * @param input The string you intend to covert to a point
  */
-point strtop(char *input) {
+point strtop(char *line)
+{
     point p;
+    char *pos = line;
+    char *endptr;
 
-    // strtok statically binds the input string and if NULL is given works on with the last string passed  in
-    char *x_str = strtok(input, " ");
-    char *y_str = strtok(NULL, "\n");
+    strip(line);
 
-    if (x_str == NULL || y_str == NULL) {
-        error("Malformed line");
+    // Parse the x-value
+    p.x = strtof(pos, &endptr);
+    if (pos == endptr || *endptr != ' ')
+    {
+        exit(EXIT_FAILURE);
     }
 
-    // strtof collects every unused char in the char pointer
-    char *endptr_x;
-    fprintf(stderr, "%s\n", x_str);
-    p.x = strtof(x_str, &endptr_x);
-
-    char *endptr_y;
-    fprintf(stderr, "%s\n", y_str);
-    p.y = strtof(y_str, &endptr_y);
-
-    if (*endptr_x != '\0') {
-        error("Malformed input line");
+    // Parse the y-value
+    pos = endptr + 1;
+    p.y = strtof(pos, &endptr);
+    if (pos == endptr || strlen(line) + line != endptr)
+    {
+        fprintf(stderr, "failed\n");
+        exit(EXIT_FAILURE);
     }
 
-    if (*endptr_y != '\0') {
-        error("Malformed input line");
-    }
-
+    // Everything worked fine.
     return p;
 }
 
@@ -180,11 +186,12 @@ size_t ctop(FILE *file, point points[2]) {
     char *line = NULL;
 
     while((getline(&line, &size, file)) != -1) {
-        fprintf(stderr, "writing to parent: %s\n", line);
+        fprintf(stderr, "writing to parent: %s", line);
         // TODO: ask what the difference is between *points[stored] and (*points)[stored]
         points[stored] = strtop(line);
         fprintf(stderr, "Writing point to parent :");
         ptofile(stderr, &points[stored]);
+        fprintf(stderr, "\n");
         stored++;
     }
     free(line);
@@ -210,26 +217,9 @@ float euclidean(point p1, point p2) {
  * @param mergedChildren The best result from both children
  * @return -1 if one of the children had an error 0 if merge was successful
  */
+// TODO: merge function
+void merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point mergedChildren[2]) {}
 
-int merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point mergedChildren[2]) {
-    float nearest = FLT_MAX;
-
-    if (b == 0 || a == 0) {
-        return -1;
-    }
-
-    for (size_t i = 0; i < a; ++i) {
-        for (size_t j = 0; j < b; ++j) {
-            float dist = euclidean(leftChild[i], rightChild[j]);
-            if (dist < nearest) {
-                nearest = dist;
-                mergedChildren[0] = leftChild[i];
-                mergedChildren[1] = rightChild[j];
-            }
-        }
-    }
-    return 0;
-}
 
 void printPairSorted(FILE *file, point pair[2]) {
     if (pair[0].x == pair[1].x) {
@@ -334,9 +324,7 @@ int main(int argc, char *argv[]) {
 
     if (rightChild == -1) {
         fprintf(stderr, "[%s] ERROR: Cannot fork\n", process);
-
         closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
-
         exit(EXIT_FAILURE);
     }
 
@@ -388,6 +376,7 @@ int main(int argc, char *argv[]) {
     }
 
     float mean = meanpx(points, stored);
+    // TODO: check if every x coordinate is the same then check if every y coordinate is the same
     for (int i = 0; i < stored; i++) {
         if (points[i].x <= mean) {
             ptofile(leftWriteFile, &points[i]);
@@ -411,6 +400,7 @@ int main(int argc, char *argv[]) {
     if (WEXITSTATUS(statusLeft) == EXIT_FAILURE) {exit(EXIT_FAILURE);}
     if (WEXITSTATUS(statusRight) == EXIT_FAILURE) {exit(EXIT_FAILURE);}
 
+
     // TODO: ask why this doesn't work without malloc
     point child1Points[2];
     point child2Points[2];
@@ -418,6 +408,8 @@ int main(int argc, char *argv[]) {
 
     size_t a = ctop(leftReadFile, child1Points);
     size_t b = ctop(rightReadFile, child2Points);
+
+    closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftReadPipe);
 
     merge(a, child1Points, b, child2Points, mergedChildren);
 
