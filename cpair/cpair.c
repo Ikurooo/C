@@ -384,9 +384,9 @@ int main(int argc, char *argv[]) {
         ptofile(stderr, &child2Points[i]);
     }
 
-
-
-    // TODO: ask how i should combine the points cause i really don't understand
+    // TODO: implement merge function
+    ptofile(stdout, &child1Points[0]);
+    ptofile(stdout, &child1Points[1]);
 
     free(points);
     return 0;
