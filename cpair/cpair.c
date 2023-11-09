@@ -193,28 +193,19 @@ void merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point me
     point p2 = { .x = FLT_MAX, .y = FLT_MAX };
     float distance = euclidean(p1, p2);
 
-    if (a == 2 && b ==2) {
-        for (size_t i = 0; i < a; i++) {
-            point temp1 = leftChild[i];
-            for (size_t j = 0; j < b; j++) {
-                point temp2 = rightChild[j];
-                float new_dist = euclidean(temp1, temp2);
-                if (new_dist <= distance) {
-                    mergedChildren[0] = temp1;
-                    mergedChildren[1] = temp2;
-                    distance = new_dist;
-                }
+    for (size_t i = 0; i < a; i++) {
+        point temp1 = leftChild[i];
+        for (size_t j = 0; j < b; j++) {
+            point temp2 = rightChild[j];
+            float new_dist = euclidean(temp1, temp2);
+            if (new_dist <= distance) {
+                mergedChildren[0] = temp1;
+                mergedChildren[1] = temp2;
+                distance = new_dist;
             }
         }
     }
 
-    if (a == 0) {
-
-    }
-
-    if (b == 0) {
-
-    }
 }
 
 
@@ -241,16 +232,16 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
             break;
         case 1:
-            fprintf(stderr, "=========\n");
-            ptofile(stderr, &points[0]);
+//            fprintf(stderr, "=========\n");
+//            ptofile(stderr, &points[0]);
 
             free(points);
             exit(EXIT_SUCCESS);
             break;
         case 2:
-            fprintf(stderr, "=========\n");
-            ptofile(stderr, &points[0]);
-            ptofile(stderr, &points[1]);
+//            fprintf(stderr, "=========\n");
+//            ptofile(stderr, &points[0]);
+//            ptofile(stderr, &points[1]);
 
             ptofile(stdout, &points[0]);
             ptofile(stdout, &points[1]);
@@ -387,17 +378,48 @@ int main(int argc, char *argv[]) {
     size_t a = ctop(leftReadFile, child1Points);
     size_t b = ctop(rightReadFile, child2Points);
 
-    for (int i = 0; i < a; ++i) {
-        ptofile(stderr, &child1Points[i]);
-    }
+//    for (int i = 0; i < a; ++i) {
+//        ptofile(stderr, &child1Points[i]);
+//    }
+//
+//    for (int i = 0; i < b; ++i) {
+//        ptofile(stderr, &child2Points[i]);
+//    }
 
-    for (int i = 0; i < b; ++i) {
-        ptofile(stderr, &child2Points[i]);
-    }
+//    fprintf(stderr, "==================\n%zu %zu\n", a, b);
 
-    // issue is we get 0 if child returned from a leaf with one out
-    merge(a, child1Points, b, child2Points, mergedChildren);
-    fprintf(stderr, "==================\n%zu %zu\n", a, b);
+    if (a == 0 || b == 0) {
+        point p1 = { .x = FLT_MAX, .y = FLT_MIN };
+        point p2 = { .x = FLT_MIN, .y = FLT_MAX };
+        float distance = euclidean(p1, p2);
+
+        float distance2 = euclidean(points[0], points[1]);
+        float distance3 = euclidean(points[0], points[2]);
+        float distance4 = euclidean(points[1], points[2]);
+
+        if (distance2 < distance) {
+            mergedChildren[0] = points[0];
+            mergedChildren[1] = points[1];
+            distance = distance2;
+        }
+
+        if (distance3 < distance) {
+            mergedChildren[0] = points[0];
+            mergedChildren[1] = points[2];
+            distance = distance3;
+        }
+
+        if (distance4 < distance) {
+            mergedChildren[0] = points[1];
+            mergedChildren[1] = points[2];
+        }
+//        fprintf(stderr, "=========\n");
+//        ptofile(stderr, &mergedChildren[0]);
+//        ptofile(stderr, &mergedChildren[1]);
+    } else {
+        // issue is we get 0 if child returned from a leaf with one out
+        merge(a, child1Points, b, child2Points, mergedChildren);
+    }
 
     // TODO: implement merge function
     ptofile(stdout, &mergedChildren[0]);
