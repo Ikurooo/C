@@ -384,6 +384,8 @@ int main(int argc, char *argv[]) {
         ptofile(stderr, &child2Points[i]);
     }
 
+
+
     // TODO: ask how i should combine the points cause i really don't understand
 
     free(points);
