@@ -14,6 +14,7 @@
 #include "sys/wait.h"
 #include "sys/types.h"
 #include "math.h"
+#include "float.h"
 
 typedef struct {
     float x;
@@ -182,9 +183,40 @@ size_t ctop(FILE *file, point points[2]) {
     return stored;
 }
 
-int euclidean(point p1, point p2) {
-    return sqrt((pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)));
+float euclidean(point p1, point p2) {
+    return sqrtf((float)(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)));
 }
+
+void merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point mergedChildren[2]) {
+    // Initialize p1 and p2 with FLT_MAX values
+    point p1 = { .x = FLT_MAX, .y = FLT_MAX };
+    point p2 = { .x = FLT_MAX, .y = FLT_MAX };
+    float distance = euclidean(p1, p2);
+
+    if (a == 2 && b ==2) {
+        for (size_t i = 0; i < a; i++) {
+            point temp1 = leftChild[i];
+            for (size_t j = 0; j < b; j++) {
+                point temp2 = rightChild[j];
+                float new_dist = euclidean(temp1, temp2);
+                if (new_dist <= distance) {
+                    mergedChildren[0] = temp1;
+                    mergedChildren[1] = temp2;
+                    distance = new_dist;
+                }
+            }
+        }
+    }
+
+    if (a == 0) {
+
+    }
+
+    if (b == 0) {
+
+    }
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -202,8 +234,6 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    fprintf(stderr, "stored: %zu\n", stored);
-
     switch (stored) {
         case 0:
             fprintf(stderr, "[%s] ERROR: No points provided via stdin!\n", process);
@@ -211,14 +241,19 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
             break;
         case 1:
+            fprintf(stderr, "=========\n");
+            ptofile(stderr, &points[0]);
+
             free(points);
             exit(EXIT_SUCCESS);
             break;
         case 2:
-            ptofile(stdout, &points[0]);
-            ptofile(stdout, &points[1]);
+            fprintf(stderr, "=========\n");
             ptofile(stderr, &points[0]);
             ptofile(stderr, &points[1]);
+
+            ptofile(stdout, &points[0]);
+            ptofile(stdout, &points[1]);
             fflush(stdout);
             free(points);
             exit(EXIT_SUCCESS);
@@ -347,20 +382,26 @@ int main(int argc, char *argv[]) {
     // TODO: ask why this doesn't work without malloc
     point child1Points[2];
     point child2Points[2];
+    point mergedChildren[2];
 
     size_t a = ctop(leftReadFile, child1Points);
     size_t b = ctop(rightReadFile, child2Points);
 
-    for (int i = 0; i < 2; i++) {
-        fprintf(stderr, "Left at [%d]: ", i + 1);
+    for (int i = 0; i < a; ++i) {
         ptofile(stderr, &child1Points[i]);
-        fprintf(stderr,"Right at [%d]: ", i + 1);
+    }
+
+    for (int i = 0; i < b; ++i) {
         ptofile(stderr, &child2Points[i]);
     }
 
+    // issue is we get 0 if child returned from a leaf with one out
+    merge(a, child1Points, b, child2Points, mergedChildren);
+    fprintf(stderr, "==================\n%zu %zu\n", a, b);
+
     // TODO: implement merge function
-    ptofile(stdout, &child1Points[0]);
-    ptofile(stdout, &child1Points[1]);
+    ptofile(stdout, &mergedChildren[0]);
+    ptofile(stdout, &mergedChildren[1]);
 
     free(points);
     return 0;
