@@ -14,7 +14,6 @@
 #include "sys/wait.h"
 #include "sys/types.h"
 #include "math.h"
-#include "ctype.h"
 
 typedef struct {
     float x;
@@ -63,60 +62,36 @@ float meanpx(point *points, size_t stored) {
     return sum / (float)stored;
 }
 
-int is_float(char *str) {
-    char *endptr;
-    errno = 0;  // To distinguish success/failure after the call to strtod
-
-    strtod(str, &endptr); //convert to a double
-
-    // Check for various possible errors
-    if (endptr == str) return 1;
-    if (isspace((unsigned char) *str)) return 1;
-    if (*endptr != '\0') return 1;
-    if (errno == ERANGE) return 1;
-
-    // If we get here, it's a float
-    return 0;
-}
-
 /**
  * @brief Parses a string to a point
  * @details Throws an error and exits if the string is not of a valid format
  * @param input The string you intend to covert to a point
  */
-point strtop(char *string) {
-    int amountOfSpaces = 0;
-    float x;
-    float y;
+point strtop(char *input) {
+    point p;
 
-//    fprintf(stderr, "Input string: %s", string);
-    for (int i = 0; i < strlen(string); ++i) if (string[i] == ' ') amountOfSpaces++;
-    if (string == NULL || amountOfSpaces != 1) {
-        fprintf(stderr, "[%s] ERROR: There must only be 2 coordinates. Not more, not less! %s\n", process, string);
-        exit(EXIT_FAILURE);
+    char *x_str = strtok(input, " ");
+    char *y_str = strtok(NULL, "\n");
+
+    if (x_str == NULL || y_str == NULL) {
+        error("Malformed input line");
     }
 
-    // Extract the first token
-    char *token = strtok(string, " ");
-    if (token != NULL) x = strtof(token, NULL);
-    else {
-        fprintf(stderr, "[%s] ERROR: The first coordinate is not a float: %s\n", process, token);
-        exit(EXIT_FAILURE);
+    char *endptr_x;
+    p.x = strtof(x_str, &endptr_x);
+
+    char *endptr_y;
+    p.y = strtof(y_str, &endptr_y);
+
+    if (*endptr_x != '\0') {
+        error("Malformed input line");
     }
 
-
-    token = strtok(NULL, " ");
-    if (token != NULL) y = strtof(token, NULL);
-    else {
-        fprintf(stderr, "[%s] ERROR: The second coordinate is not a float: %s\n", process, token);
-        exit(EXIT_FAILURE);
+    if (*endptr_y != '\0') {
+        error("Malformed input line");
     }
 
-    point point;
-    point.x = x;
-    point.y = y;
-
-    return point;
+    return p;
 }
 
 /**
@@ -200,7 +175,6 @@ size_t ctop(FILE *file, point points[2]) {
     char *line = NULL;
 
     while((getline(&line, &size, file)) != -1) {
-        // TODO: ask what the difference is between *points[stored] and (*points)[stored]
         points[stored] = strtop(line);
         stored++;
     }
