@@ -436,3 +436,4 @@ int main(int argc, char *argv[]) {
 // TODO: fix even number of inputs
 // TODO: error handling
 // TODO: check if all x coordinates are the same
+// TODO: add documentation
