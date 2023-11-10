@@ -210,20 +210,23 @@ void printPairSorted(FILE *file, point pair[2]) {
 }
 
 void merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point mergedChildren[2]) {
-    // Initialize p1 and p2 with FLT_MAX values
-    point p1 = { .x = FLT_MAX, .y = FLT_MAX };
-    point p2 = { .x = FLT_MAX, .y = FLT_MAX };
-    float distance = euclidean(p1, p2);
 
-    for (size_t i = 0; i < a; i++) {
-        point temp1 = leftChild[i];
-        for (size_t j = 0; j < b; j++) {
-            point temp2 = rightChild[j];
-            float new_dist = euclidean(temp1, temp2);
-            if (new_dist <= distance) {
-                mergedChildren[0] = temp1;
-                mergedChildren[1] = temp2;
-                distance = new_dist;
+    float distance1 = euclidean(leftChild[0], leftChild[1]);
+    float distance2 = euclidean(leftChild[0], leftChild[1]);
+
+    float nearest = (distance1 < distance2) ? distance1 : distance2;
+
+    mergedChildren[0] = (distance1 < distance2) ? leftChild[0] : rightChild[0];
+    mergedChildren[1] = (distance1 < distance2) ? leftChild[1] : rightChild[1];
+
+    for (size_t i = 0; i < a; ++i) {
+        for (size_t j = 0; j < b; ++j) {
+            float dist = euclidean(leftChild[i], rightChild[j]);
+            if (dist < nearest) {
+                nearest = dist;
+                fprintf(stderr, "%f\n", nearest);
+                mergedChildren[0] = leftChild[i];
+                mergedChildren[1] = rightChild[j];
             }
         }
     }
@@ -432,8 +435,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-// TODO: fix memory leaks
-// TODO: fix even number of inputs
+// TODO: fix merge function?
 // TODO: error handling
 // TODO: check if all x coordinates are the same
 // TODO: add documentation
