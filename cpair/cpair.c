@@ -210,25 +210,70 @@ void printPairSorted(FILE *file, point pair[2]) {
 }
 
 void merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point mergedChildren[2]) {
-
     float distance1 = euclidean(leftChild[0], leftChild[1]);
     float distance2 = euclidean(leftChild[0], leftChild[1]);
+    float distance3 = euclidean(leftChild[0], rightChild[0]);
+    float distance4 = euclidean(leftChild[0], rightChild[1]);
+    float distance5 = euclidean(leftChild[1], rightChild[0]);
+    float distance6 = euclidean(leftChild[1], rightChild[1]);
 
-    float nearest = (distance1 < distance2) ? distance1 : distance2;
+    float nearest = distance1;
+    int nearestIndex = 0;
 
-    mergedChildren[0] = (distance1 < distance2) ? leftChild[0] : rightChild[0];
-    mergedChildren[1] = (distance1 < distance2) ? leftChild[1] : rightChild[1];
+    if (distance2 < nearest) {
+        nearest = distance2;
+        nearestIndex = 1;
+    }
 
-    for (size_t i = 0; i < a; ++i) {
-        for (size_t j = 0; j < b; ++j) {
-            float dist = euclidean(leftChild[i], rightChild[j]);
-            if (dist < nearest) {
-                nearest = dist;
-                fprintf(stderr, "%f\n", nearest);
-                mergedChildren[0] = leftChild[i];
-                mergedChildren[1] = rightChild[j];
-            }
-        }
+    if (distance3 < nearest) {
+        nearest = distance3;
+        nearestIndex = 2;
+    }
+
+    if (distance4 < nearest) {
+        nearest = distance4;
+        nearestIndex = 3;
+    }
+
+    if (distance5 < nearest) {
+        nearest = distance5;
+        nearestIndex = 4;
+    }
+
+    if (distance6 < nearest) {
+        nearest = distance6;
+        nearestIndex = 5;
+    }
+
+// Update mergedChildren based on the nearest distances
+    switch (nearestIndex) {
+        case 0:
+            mergedChildren[0] = leftChild[0];
+            mergedChildren[1] = leftChild[1];
+            break;
+        case 1:
+            mergedChildren[0] = leftChild[0];
+            mergedChildren[1] = leftChild[1];
+            break;
+        case 2:
+            mergedChildren[0] = leftChild[0];
+            mergedChildren[1] = rightChild[0];
+            break;
+        case 3:
+            mergedChildren[0] = leftChild[0];
+            mergedChildren[1] = rightChild[1];
+            break;
+        case 4:
+            mergedChildren[0] = leftChild[1];
+            mergedChildren[1] = rightChild[0];
+            break;
+        case 5:
+            mergedChildren[0] = leftChild[1];
+            mergedChildren[1] = rightChild[1];
+            break;
+        default:
+            // Handle an unexpected case
+            break;
     }
 }
 
@@ -259,6 +304,9 @@ int main(int argc, char *argv[]) {
             exit(EXIT_SUCCESS);
             break;
         case 2:
+            printPairSorted(stderr, points);
+            fprintf(stderr, "============\n");
+
             printPairSorted(stdout, points);
             fflush(stdout);
             free(points);
@@ -366,9 +414,13 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < stored; i++) {
         if (points[i].x <= mean) {
             ptofile(leftWriteFile, &points[i]);
+            fprintf(stderr, "Looooooooooooooo\n");
+            ptofile(stderr, &points[i]);
         }
         else {
             ptofile(rightWriteFile, &points[i]);
+            fprintf(stderr, "Rooooooooooooooo\n");
+            ptofile(stderr, &points[i]);
         }
     }
 
@@ -434,6 +486,10 @@ int main(int argc, char *argv[]) {
     free(points);
     return 0;
 }
+
+// TODO: okay so the funny thing i thought can't happen happens
+// TODO: so stuff like 4:1 split is possible ajajajj
+
 
 // TODO: fix merge probably
 // TODO: error handling
