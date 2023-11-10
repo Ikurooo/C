@@ -435,6 +435,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+// TODO: fix merge probably
 // TODO: error handling
 // TODO: check if all x coordinates are the same
 // TODO: add documentation
