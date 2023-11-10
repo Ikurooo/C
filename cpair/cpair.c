@@ -46,7 +46,7 @@ void usage() {
  * @param p The point you intend to write to the file
  */
 int ptofile(FILE *file, point *p) {
-    fprintf(file, "%.3f %.3f\n", p->x, p->y);
+    return fprintf(file, "%.3f %.3f\n", p->x, p->y);
 }
 
 /**
@@ -187,6 +187,28 @@ float euclidean(point p1, point p2) {
     return sqrtf((float)(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)));
 }
 
+void printPairSorted(FILE *file, point pair[2]) {
+    if (pair[0].x == pair[1].x) {
+        // If x values are equal, sort based on y values
+        if (pair[0].y <= pair[1].y) {
+            ptofile(file, &pair[0]);
+            ptofile(file, &pair[1]);
+        } else {
+            ptofile(file, &pair[1]);
+            ptofile(file, &pair[0]);
+        }
+    } else {
+        // If x values are different, sort based on x values
+        if (pair[0].x < pair[1].x) {
+            ptofile(file, &pair[0]);
+            ptofile(file, &pair[1]);
+        } else {
+            ptofile(file, &pair[1]);
+            ptofile(file, &pair[0]);
+        }
+    }
+}
+
 void merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point mergedChildren[2]) {
     // Initialize p1 and p2 with FLT_MAX values
     point p1 = { .x = FLT_MAX, .y = FLT_MAX };
@@ -205,9 +227,7 @@ void merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point me
             }
         }
     }
-
 }
-
 
 int main(int argc, char *argv[]) {
 
@@ -232,19 +252,11 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
             break;
         case 1:
-//            fprintf(stderr, "=========\n");
-//            ptofile(stderr, &points[0]);
-
             free(points);
             exit(EXIT_SUCCESS);
             break;
         case 2:
-//            fprintf(stderr, "=========\n");
-//            ptofile(stderr, &points[0]);
-//            ptofile(stderr, &points[1]);
-
-            ptofile(stdout, &points[0]);
-            ptofile(stdout, &points[1]);
+            printPairSorted(stdout, points);
             fflush(stdout);
             free(points);
             exit(EXIT_SUCCESS);
@@ -367,26 +379,21 @@ int main(int argc, char *argv[]) {
     waitpid(leftChild, &statusLeft, 0);
     waitpid(rightChild, &statusRight, 0);
 
-    if (WEXITSTATUS(statusLeft) == EXIT_FAILURE) {exit(EXIT_FAILURE);}
-    if (WEXITSTATUS(statusRight) == EXIT_FAILURE) {exit(EXIT_FAILURE);}
+    if (WEXITSTATUS(statusLeft) == EXIT_FAILURE) {
+        free(points);
+        exit(EXIT_FAILURE);
+    }
+    if (WEXITSTATUS(statusRight) == EXIT_FAILURE) {
+        free(points);
+        exit(EXIT_FAILURE);
+    }
 
-    // TODO: ask why this doesn't work without malloc
     point child1Points[2];
     point child2Points[2];
     point mergedChildren[2];
 
     size_t a = ctop(leftReadFile, child1Points);
     size_t b = ctop(rightReadFile, child2Points);
-
-//    for (int i = 0; i < a; ++i) {
-//        ptofile(stderr, &child1Points[i]);
-//    }
-//
-//    for (int i = 0; i < b; ++i) {
-//        ptofile(stderr, &child2Points[i]);
-//    }
-
-//    fprintf(stderr, "==================\n%zu %zu\n", a, b);
 
     if (a == 0 || b == 0) {
         point p1 = { .x = FLT_MAX, .y = FLT_MIN };
@@ -413,19 +420,19 @@ int main(int argc, char *argv[]) {
             mergedChildren[0] = points[1];
             mergedChildren[1] = points[2];
         }
-//        fprintf(stderr, "=========\n");
-//        ptofile(stderr, &mergedChildren[0]);
-//        ptofile(stderr, &mergedChildren[1]);
+
     } else {
-        // issue is we get 0 if child returned from a leaf with one out
+        fprintf(stderr, "%zu %zu\n", a, b);
         merge(a, child1Points, b, child2Points, mergedChildren);
     }
 
-    // TODO: implement merge function
-    ptofile(stdout, &mergedChildren[0]);
-    ptofile(stdout, &mergedChildren[1]);
+    printPairSorted(stdout, mergedChildren);
 
     free(points);
     return 0;
 }
 
+// TODO: fix memory leaks
+// TODO: fix even number of inputs
+// TODO: error handling
+// TODO: check if all x coordinates are the same

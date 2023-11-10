@@ -27,5 +27,5 @@ clean:
 	rm -rf *.o cpair HW1A.tgz
 
 release:
-	tar -cvzf HW1A.tgz mycompress.c Makefile
+	tar -cvzf HW1A.tgz cpair.c Makefile
 
