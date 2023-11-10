@@ -15,6 +15,7 @@
 #include "sys/types.h"
 #include "math.h"
 #include "float.h"
+#include "stdbool.h"
 
 typedef struct {
     float x;
@@ -60,7 +61,8 @@ float meanpx(point *points, size_t stored) {
     for (int i = 0; i < stored; i++) {
         sum += (points)[i].x;
     }
-    return sum / (float)stored;
+    sum /= stored;
+    return (float)sum;
 }
 
 /**
@@ -209,6 +211,27 @@ void printPairSorted(FILE *file, point pair[2]) {
     }
 }
 
+void findNearestPair(point points[], size_t size, point mergedChildren[2]) {
+    if (size < 2) {
+        fprintf(stderr, "Insufficient number of points to find the nearest pair.\n");
+        return;
+    }
+
+    int i, j;
+    double minDistance = DBL_MAX;
+
+    for (i = 0; i < size - 1; i++) {
+        for (j = i + 1; j < size; j++) {
+            double distance = euclidean(points[i], points[j]);
+            if (distance < minDistance) {
+                minDistance = distance;
+                mergedChildren[0] = points[i];
+                mergedChildren[1] = points[j];
+            }
+        }
+    }
+}
+
 void merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point mergedChildren[2]) {
     float distance1 = euclidean(leftChild[0], leftChild[1]);
     float distance2 = euclidean(leftChild[0], leftChild[1]);
@@ -216,6 +239,7 @@ void merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point me
     float distance4 = euclidean(leftChild[0], rightChild[1]);
     float distance5 = euclidean(leftChild[1], rightChild[0]);
     float distance6 = euclidean(leftChild[1], rightChild[1]);
+    float distance7 = euclidean(rightChild[0], rightChild[1]);
 
     float nearest = distance1;
     int nearestIndex = 0;
@@ -244,33 +268,50 @@ void merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point me
         nearest = distance6;
         nearestIndex = 5;
     }
+    if (distance7 < nearest) {
+        nearest = distance6;
+        nearestIndex = 6;
+    }
+
+//    fprintf(stderr, "%f\n", nearest);
 
 // Update mergedChildren based on the nearest distances
     switch (nearestIndex) {
         case 0:
             mergedChildren[0] = leftChild[0];
             mergedChildren[1] = leftChild[1];
+//              printPairSorted(stderr, mergedChildren);
             break;
         case 1:
+
             mergedChildren[0] = leftChild[0];
             mergedChildren[1] = leftChild[1];
+//            printPairSorted(stderr, mergedChildren);
             break;
         case 2:
             mergedChildren[0] = leftChild[0];
             mergedChildren[1] = rightChild[0];
+//            printPairSorted(stderr, mergedChildren);
             break;
         case 3:
             mergedChildren[0] = leftChild[0];
             mergedChildren[1] = rightChild[1];
+//            printPairSorted(stderr, mergedChildren);
             break;
         case 4:
             mergedChildren[0] = leftChild[1];
             mergedChildren[1] = rightChild[0];
+//            printPairSorted(stderr, mergedChildren);
             break;
         case 5:
             mergedChildren[0] = leftChild[1];
             mergedChildren[1] = rightChild[1];
+//            printPairSorted(stderr, mergedChildren);
             break;
+        case 6:
+            mergedChildren[0] = rightChild[0];
+            mergedChildren[1] = rightChild[1];
+//            printPairSorted(stderr, mergedChildren);
         default:
             // Handle an unexpected case
             break;
@@ -304,8 +345,8 @@ int main(int argc, char *argv[]) {
             exit(EXIT_SUCCESS);
             break;
         case 2:
-            printPairSorted(stderr, points);
-            fprintf(stderr, "============\n");
+//            printPairSorted(stderr, points);
+//            fprintf(stderr, "============\n");
 
             printPairSorted(stdout, points);
             fflush(stdout);
@@ -410,17 +451,31 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    bool moreThanOneOnLeft = false;
+    bool moreThanOneOnRight = false;
+    point leftSinglet;
+    point rightSinglet;
+
     float mean = meanpx(points, stored);
+//    fprintf(stderr, "%f\n", mean);
     for (int i = 0; i < stored; i++) {
         if (points[i].x <= mean) {
             ptofile(leftWriteFile, &points[i]);
-            fprintf(stderr, "Looooooooooooooo\n");
-            ptofile(stderr, &points[i]);
+            if (moreThanOneOnLeft == false) {
+                leftSinglet = points[i];
+                moreThanOneOnLeft = true;
+            }
+//            fprintf(stderr, "Looooooooooooooo\n");
+//            ptofile(stderr, &points[i]);
         }
         else {
             ptofile(rightWriteFile, &points[i]);
-            fprintf(stderr, "Rooooooooooooooo\n");
-            ptofile(stderr, &points[i]);
+            if (moreThanOneOnRight == false) {
+                rightSinglet = points[i];
+                moreThanOneOnRight = true;
+            }
+//            fprintf(stderr, "Rooooooooooooooo\n");
+//            ptofile(stderr, &points[i]);
         }
     }
 
@@ -451,33 +506,10 @@ int main(int argc, char *argv[]) {
     size_t b = ctop(rightReadFile, child2Points);
 
     if (a == 0 || b == 0) {
-        point p1 = { .x = FLT_MAX, .y = FLT_MIN };
-        point p2 = { .x = FLT_MIN, .y = FLT_MAX };
-        float distance = euclidean(p1, p2);
-
-        float distance2 = euclidean(points[0], points[1]);
-        float distance3 = euclidean(points[0], points[2]);
-        float distance4 = euclidean(points[1], points[2]);
-
-        if (distance2 < distance) {
-            mergedChildren[0] = points[0];
-            mergedChildren[1] = points[1];
-            distance = distance2;
-        }
-
-        if (distance3 < distance) {
-            mergedChildren[0] = points[0];
-            mergedChildren[1] = points[2];
-            distance = distance3;
-        }
-
-        if (distance4 < distance) {
-            mergedChildren[0] = points[1];
-            mergedChildren[1] = points[2];
-        }
-
+        findNearestPair(points, stored, mergedChildren);
+//        printPairSorted(stderr, mergedChildren);
     } else {
-        fprintf(stderr, "%zu %zu\n", a, b);
+//        fprintf(stderr, "%zu %zu\n", a, b);
         merge(a, child1Points, b, child2Points, mergedChildren);
     }
 
