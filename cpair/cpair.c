@@ -243,6 +243,43 @@ int countCoordinates(point *points, ssize_t stored, char coordinate) {
     return count;
 }
 
+int mergechildren(point child1Points[2], int a, point child2Points[2], int b, point mergedChildren[2]) {
+    if (a == 0  && b == 0) {
+        return -1;
+    }
+
+    if (a == 0)
+    {
+        // The left child retuned with no result so the right must have one
+        mergedChildren[0] = child2Points[0];
+        mergedChildren[1] = child2Points[1];
+        return 0;
+    }
+    else if (b == 0)
+    {
+        // The right child returned with no result so the left must have one
+        mergedChildren[0] = child1Points[0];
+        mergedChildren[1] = child1Points[1];
+        return 0;
+    }
+
+    // Both children have a result so we need to find out which one has the
+    // best result.
+    if (euclidean(child2Points[0], child2Points[1]) <=
+        euclidean(child1Points[0], child2Points[1]))
+    {
+        mergedChildren[0] = child2Points[0];
+        mergedChildren[1] = child2Points[1];
+        return 0;
+    }
+    else
+    {
+        mergedChildren[0] = child1Points[0];
+        mergedChildren[1] = child1Points[1];
+        return 0;
+    }
+}
+
 
 int main(int argc, char *argv[]) {
 
