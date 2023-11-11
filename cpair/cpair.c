@@ -50,18 +50,20 @@ int ptofile(FILE *file, point *p) {
     return fprintf(file, "%.3f %.3f\n", p->x, p->y);
 }
 
+
+// TODO: update docs
 /**
  * @brief Returns the mean of the x values of a point array
  * @details It is assumed that both parameters are valid
  * @param points The point array you intend to calculate the mean of
  * @param stored The amount of points in the point array
  */
-float meanpx(point *points, size_t stored) {
-    float sum = 0;
-    for (int i = 0; i < stored; i++) {
-        sum += (points)[i].x;
+float meanpx(point *points, size_t stored, char coordinate) {
+    float sum = 0.0f;
+    for (size_t i = 0; i < stored; i++) {
+        sum += (coordinate == 'x') ? points[i].x : points[i].y;
     }
-    sum /= stored;
+    sum /= (float)stored;
     return (float)sum;
 }
 
@@ -211,102 +213,36 @@ void printPairSorted(FILE *file, point pair[2]) {
     }
 }
 
-void findNearestPair(point points[], size_t size, point mergedChildren[2]) {
-    if (size < 2) {
-        fprintf(stderr, "Insufficient number of points to find the nearest pair.\n");
-        return;
-    }
+void ptoc(point *points, ssize_t stored, char coordinate, FILE *leftWriteFile, FILE *rightWriteFile) {
+    float mean = meanpx(points, stored, coordinate);
 
-    int i, j;
-    double minDistance = DBL_MAX;
-
-    for (i = 0; i < size - 1; i++) {
-        for (j = i + 1; j < size; j++) {
-            double distance = euclidean(points[i], points[j]);
-            if (distance < minDistance) {
-                minDistance = distance;
-                mergedChildren[0] = points[i];
-                mergedChildren[1] = points[j];
-            }
+    for (int i = 0; i < stored; i++) {
+        if ((coordinate == 'x' && points[i].x <= mean) || (coordinate == 'y' && points[i].y <= mean)) {
+            ptofile(leftWriteFile, &points[i]);
+//            fprintf(stderr, "Looooooooooooooo\n");
+//            ptofile(stderr, &points[i]);
+        } else {
+            ptofile(rightWriteFile, &points[i]);
+//            fprintf(stderr, "Rooooooooooooooo\n");
+//            ptofile(stderr, &points[i]);
         }
     }
 }
 
-void merge(size_t a, point leftChild[2], size_t b, point rightChild[2], point mergedChildren[2]) {
-    float distance1 = euclidean(leftChild[0], leftChild[1]);
-    float distance2 = euclidean(rightChild[0], rightChild[1]);
-    float distance3 = euclidean(rightChild[0], leftChild[0]);
-    float distance4 = euclidean(rightChild[0], leftChild[1]);
-    float distance5 = euclidean(leftChild[0], rightChild[1]);
-    float distance6 = euclidean(leftChild[1], rightChild[1]);
+int countCoordinates(point *points, ssize_t stored, char coordinate) {
+    int count = 0;
+    float sameCoordinate = (coordinate == 'x') ? points[0].x : points[0].y;
 
-    float nearest = distance1;
-    int nearestIndex = 0;
-
-    if (distance2 < nearest) {
-        nearest = distance2;
-        nearestIndex = 1;
+    for (size_t i = 0; i < stored; i++) {
+        if ((coordinate == 'x' && points[i].x == sameCoordinate) ||
+            (coordinate == 'y' && points[i].y == sameCoordinate)) {
+            count++;
+        }
     }
 
-    if (distance3 < nearest) {
-        nearest = distance3;
-        nearestIndex = 2;
-    }
-
-    if (distance4 < nearest) {
-        nearest = distance4;
-        nearestIndex = 3;
-    }
-
-    if (distance5 < nearest) {
-        nearest = distance5;
-        nearestIndex = 4;
-    }
-
-    if (distance6 < nearest) {
-        nearest = distance6;
-        nearestIndex = 5;
-    }
-
-    fprintf(stderr, "%f\n", nearest);
-
-// Update mergedChildren based on the nearest distances
-    switch (nearestIndex) {
-        case 0:
-            mergedChildren[0] = leftChild[0];
-            mergedChildren[1] = leftChild[1];
-            printPairSorted(stderr, mergedChildren);
-            break;
-        case 1:
-            mergedChildren[0] = rightChild[0];
-            mergedChildren[1] = rightChild[1];
-            printPairSorted(stderr, mergedChildren);
-            break;
-        case 2:
-            mergedChildren[0] = rightChild[0];
-            mergedChildren[1] = leftChild[0];
-            printPairSorted(stderr, mergedChildren);
-            break;
-        case 3:
-            mergedChildren[0] = rightChild[0];
-            mergedChildren[1] = leftChild[1];
-            printPairSorted(stderr, mergedChildren);
-            break;
-        case 4:
-            mergedChildren[0] = leftChild[0];
-            mergedChildren[1] = rightChild[1];
-            printPairSorted(stderr, mergedChildren);
-            break;
-        case 5:
-            mergedChildren[0] = leftChild[1];
-            mergedChildren[1] = rightChild[1];
-            printPairSorted(stderr, mergedChildren);
-            break;
-        default:
-            // Handle an unexpected case
-            break;
-    }
+    return count;
 }
+
 
 int main(int argc, char *argv[]) {
 
@@ -345,6 +281,19 @@ int main(int argc, char *argv[]) {
         default:
             break;
     }
+
+    int sameX = countCoordinates(points, stored, 'x');
+    int sameY = countCoordinates(points, stored, 'y');
+    point samePoints[2];
+
+    // Take care of the case when 2 points are identical
+    if (sameX == stored || sameY == stored) {
+        samePoints[0] = points[0];
+        samePoints[1] = points[1];
+        printPairSorted(stdout, samePoints);
+        exit(EXIT_SUCCESS);
+    }
+
     // Parent writes to this
     int leftWritePipe[2];
     int rightWritePipe[2];
@@ -441,32 +390,12 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    bool moreThanOneOnLeft = false;
-    bool moreThanOneOnRight = false;
-    point leftSinglet;
-    point rightSinglet;
-
-    float mean = meanpx(points, stored);
-//    fprintf(stderr, "%f\n", mean);
-    for (int i = 0; i < stored; i++) {
-        if (points[i].x <= mean) {
-            ptofile(leftWriteFile, &points[i]);
-            if (moreThanOneOnLeft == false) {
-                leftSinglet = points[i];
-                moreThanOneOnLeft = true;
-            }
-            fprintf(stderr, "Looooooooooooooo\n");
-            ptofile(stderr, &points[i]);
-        }
-        else {
-            ptofile(rightWriteFile, &points[i]);
-            if (moreThanOneOnRight == false) {
-                rightSinglet = points[i];
-                moreThanOneOnRight = true;
-            }
-            fprintf(stderr, "Rooooooooooooooo\n");
-            ptofile(stderr, &points[i]);
-        }
+    if (sameX == stored) {
+        // Sort based on y coordinate
+        ptoc(points, stored, 'y', leftWriteFile, rightWriteFile);
+    } else {
+        // Sort based on x coordinate
+        ptoc(points, stored, 'x', leftWriteFile, rightWriteFile);
     }
 
     fflush(leftWriteFile);
@@ -495,27 +424,9 @@ int main(int argc, char *argv[]) {
     size_t a = ctop(leftReadFile, child1Points);
     size_t b = ctop(rightReadFile, child2Points);
 
-    if (a == 0 || b == 0) {
-        findNearestPair(points, stored, mergedChildren);
-        printPairSorted(stderr, mergedChildren);
-    } else {
-//        fprintf(stderr, "%zu %zu\n", a, b);
-        merge(a, child1Points, b, child2Points, mergedChildren);
-        printPairSorted(stderr, mergedChildren);
-        fprintf(stderr, "22============\n");
-    }
-
-    printPairSorted(stdout, mergedChildren);
+    printPairSorted(stdout, child1Points);
+    printPairSorted(stdout, child2Points);
 
     free(points);
     return 0;
 }
-
-// TODO: okay so the funny thing i thought can't happen happens
-// TODO: so stuff like 4:1 split is possible ajajajj
-
-
-// TODO: fix merge probably
-// TODO: error handling
-// TODO: check if all x coordinates are the same
-// TODO: add documentation
