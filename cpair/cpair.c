@@ -58,10 +58,10 @@ int ptofile(FILE *file, point *p) {
  * @param points The point array you intend to calculate the mean of
  * @param stored The amount of points in the point array
  */
-float meanpx(point *points, size_t stored, char coordinate) {
+float meanpx(point *points, size_t stored, char axis) {
     float sum = 0.0f;
     for (size_t i = 0; i < stored; i++) {
-        sum += (coordinate == 'x') ? points[i].x : points[i].y;
+        sum += (axis == 'x') ? points[i].x : points[i].y;
     }
     sum /= (float)stored;
     return (float)sum;
@@ -213,11 +213,11 @@ void printPairSorted(FILE *file, point pair[2]) {
     }
 }
 
-void ptoc(point *points, ssize_t stored, char coordinate, FILE *leftWriteFile, FILE *rightWriteFile) {
-    float mean = meanpx(points, stored, coordinate);
+void ptoc(point *points, ssize_t stored, char axis, FILE *leftWriteFile, FILE *rightWriteFile) {
+    float mean = meanpx(points, stored, axis);
 
     for (int i = 0; i < stored; i++) {
-        if ((coordinate == 'x' && points[i].x <= mean) || (coordinate == 'y' && points[i].y <= mean)) {
+        if ((axis == 'x' && points[i].x <= mean) || (axis == 'y' && points[i].y <= mean)) {
             ptofile(leftWriteFile, &points[i]);
 //            fprintf(stderr, "Looooooooooooooo\n");
 //            ptofile(stderr, &points[i]);
@@ -229,13 +229,13 @@ void ptoc(point *points, ssize_t stored, char coordinate, FILE *leftWriteFile, F
     }
 }
 
-int countCoordinates(point *points, ssize_t stored, char coordinate) {
+int countCoordinates(point *points, ssize_t stored, char axis) {
     int count = 0;
-    float sameCoordinate = (coordinate == 'x') ? points[0].x : points[0].y;
+    float sameCoordinate = (axis == 'x') ? points[0].x : points[0].y;
 
     for (size_t i = 0; i < stored; i++) {
-        if ((coordinate == 'x' && points[i].x == sameCoordinate) ||
-            (coordinate == 'y' && points[i].y == sameCoordinate)) {
+        if ((axis == 'x' && points[i].x == sameCoordinate) ||
+            (axis == 'y' && points[i].y == sameCoordinate)) {
             count++;
         }
     }
@@ -250,35 +250,36 @@ int mergechildren(point child1Points[2], int a, point child2Points[2], int b, po
 
     if (a == 0)
     {
-        // The left child retuned with no result so the right must have one
         mergedChildren[0] = child2Points[0];
         mergedChildren[1] = child2Points[1];
         return 0;
     }
-    else if (b == 0)
+
+    if (b == 0)
     {
-        // The right child returned with no result so the left must have one
         mergedChildren[0] = child1Points[0];
         mergedChildren[1] = child1Points[1];
         return 0;
     }
 
-    // Both children have a result so we need to find out which one has the
-    // best result.
     if (euclidean(child2Points[0], child2Points[1]) <=
         euclidean(child1Points[0], child2Points[1]))
     {
         mergedChildren[0] = child2Points[0];
         mergedChildren[1] = child2Points[1];
         return 0;
-    }
-    else
-    {
+    } else {
         mergedChildren[0] = child1Points[0];
         mergedChildren[1] = child1Points[1];
         return 0;
     }
 }
+
+
+void mergefinal(point *points, ssize_t stored, point mergedChildren[2], float mean, char axis) {
+    float delta = euclidean(mergedChildren[0], mergedChildren[1]);
+}
+
 
 
 int main(int argc, char *argv[]) {
