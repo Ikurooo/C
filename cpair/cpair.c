@@ -14,49 +14,48 @@
 #include "sys/wait.h"
 #include "sys/types.h"
 #include "math.h"
-#include "float.h"
-#include "stdbool.h"
 
 typedef struct {
     float x;
     float y;
 } point;
 
-const char *process;
-
 /**
  * @brief Print an error message to stderr and exit the process with EXIT_FAILURE.
+ * @param process The name of the current process.
  */
-void error(char *message) {
+void error(char *message, const char *process) {
     fprintf(stderr, "%s ERROR: %s\n", process, message);
     exit(EXIT_FAILURE);
 }
 
 /**
  * @brief Print a usage message to stderr and exit the process with EXIT_FAILURE.
+ * @param process The name of the current process.
  */
-void usage() {
+void usage(const char *process) {
     fprintf(stderr, "[%s] ERROR: %s does not accept any arguments.\n", process, process);
     exit(EXIT_FAILURE);
 }
 
 /**
- * @brief Prints a point to a file
- * @details It is assumed that both parameters are valid
- * @param file The file you intend to write to
- * @param p The point you intend to write to the file
+ * @brief Prints a point to a file.
+ * @details It is assumed that both parameters are valid.
+ * @param file The file you intend to write to.
+ * @param p The point you intend to write to the file.
  */
 int ptofile(FILE *file, point *p) {
     return fprintf(file, "%.3f %.3f\n", p->x, p->y);
 }
 
-
-// TODO: update docs
 /**
- * @brief Returns the mean of the x values of a point array
- * @details It is assumed that both parameters are valid
- * @param points The point array you intend to calculate the mean of
- * @param stored The amount of points in the point array
+ * @brief Returns the mean of the x values of a point array.
+ * @details It is assumed that both parameters are valid.
+ * @param points The point array you intend to calculate the mean of.
+ * @param stored The amount of points in the point array.
+ * @param axis The axis along which you intend to sort the points.
+ * @details The axis parameter DOES NOT check for the validity of the input character.
+ * It is highly advised that you double check it when using this function.
  */
 float meanpx(point *points, size_t stored, char axis) {
     float sum = 0.0f;
@@ -68,18 +67,19 @@ float meanpx(point *points, size_t stored, char axis) {
 }
 
 /**
- * @brief Parses a string to a point
- * @details Throws an error and exits if the string is not of a valid format
- * @param input The string you intend to covert to a point
+ * @brief Parses a string to a point.
+ * @details Throws an error and exits if the string is not of a valid format.
+ * @param input The string you intend to covert to a point.
+ * @param process The name of the current process.
  */
-point strtop(char *input) {
+point strtop(char *input, const char *process) {
     point p;
 
     char *x_str = strtok(input, " ");
     char *y_str = strtok(NULL, "\n");
 
     if (x_str == NULL || y_str == NULL) {
-        error("Malformed input line");
+        error("Malformed input line", process);
     }
 
     char *endptr_x;
@@ -89,11 +89,11 @@ point strtop(char *input) {
     p.y = strtof(y_str, &endptr_y);
 
     if (*endptr_x != '\0') {
-        error("Malformed input line");
+        error("Malformed input line", process);
     }
 
     if (*endptr_y != '\0') {
-        error("Malformed input line");
+        error("Malformed input line", process);
     }
 
     return p;
@@ -123,13 +123,14 @@ void closepipes(int rightReadPipe[2], int leftReadPipe[2], int rightWritePipe[2]
 }
 
 /**
- * @brief Converts standard in to a point array
- * @details Dynamically allocates memory to store the points
- * @param points A pointer to an UNINITIALISED point array
+ * @brief Converts standard in to a point array.
+ * @details Dynamically allocates memory to store the points.
+ * @param points &mut A pointer to an UNINITIALISED point array.
+ * @param process The name of the current process.
  * @return A signed size that indicates the size of the array
- * -1 if it was unable to allocate memory
+ * -1 if it was unable to allocate memory.
  */
-ssize_t stdintopa(point **points)
+ssize_t stdintopa(point **points, const char *process)
 {
     ssize_t stored = 0;
     size_t capacity = 2;
@@ -137,7 +138,7 @@ ssize_t stdintopa(point **points)
 
     if (points == NULL)
     {
-        return -1;
+        error("Failed to allocate memory", process);
     }
 
     char *line = NULL;
@@ -153,12 +154,12 @@ ssize_t stdintopa(point **points)
             {
                 free(line);
                 free(*points);
-                return -1;
+                error("Failed to allocate memory", process);
             }
             *points = tmp;
         }
 
-        point p = strtop(line);
+        point p = strtop(line, process);
         (*points)[stored] = p;
         stored++;
     }
@@ -168,67 +169,96 @@ ssize_t stdintopa(point **points)
 }
 
 /**
- * @brief Converts child output to an array of (max) 2 points
- * @param file The file to which the child has written its output
- * @param points An INITIALISED array of points
- * @return An unsigned size that indicates the amount of points written
+ * @brief Converts child output to an array of (max) 2 points.
+ * @param file The file to which the child has written its output.
+ * @param points &mut An INITIALISED array of 2 points.
+ * @param process The name of the current process.
+ * @return An unsigned size that indicates the amount of points written.
  */
-size_t ctop(FILE *file, point points[2]) {
+size_t ctop(FILE *file, point points[2], const char *process) {
 
     size_t stored = 0;
     size_t size = 0;
     char *line = NULL;
 
     while((getline(&line, &size, file)) != -1) {
-        points[stored] = strtop(line);
+        points[stored] = strtop(line, process);
         stored++;
     }
     free(line);
     return stored;
 }
 
+/**
+ * @brief A function that calculates the euclidean distance of 2 points.
+ * @param p1 Point one
+ * @param p2 Point two
+ * @return The euclidean distance of of the aforementioned points.
+ */
 float euclidean(point p1, point p2) {
     return sqrtf((float)(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)));
 }
 
-void printPairSorted(FILE *file, point pair[2]) {
-    if (pair[0].x == pair[1].x) {
-        // If x values are equal, sort based on y values
-        if (pair[0].y <= pair[1].y) {
-            ptofile(file, &pair[0]);
-            ptofile(file, &pair[1]);
-        } else {
-            ptofile(file, &pair[1]);
-            ptofile(file, &pair[0]);
+/**
+ * @brief Prints a pair of points to a given file.
+ * @param file The file you intend to print to.
+ * @param pair &mut An array of exactly 2 points.
+ */
+void printPairSorted(FILE *file, point pair[2], const char *process) {
+    int result;
+
+    if ((pair[0].x == pair[1].x && pair[0].y <= pair[1].y) ||
+        (pair[0].x < pair[1].x)) {
+        result = ptofile(file, &pair[0]);
+        if (result == -1) {
+            error("Error writing to file", process);
+        }
+
+        result = ptofile(file, &pair[1]);
+        if (result == -1) {
+            error("Error writing to file", process);
         }
     } else {
-        // If x values are different, sort based on x values
-        if (pair[0].x < pair[1].x) {
-            ptofile(file, &pair[0]);
-            ptofile(file, &pair[1]);
-        } else {
-            ptofile(file, &pair[1]);
-            ptofile(file, &pair[0]);
+        result = ptofile(file, &pair[1]);
+        if (result == -1) {
+            error("Error writing to file", process);
+        }
+
+        result = ptofile(file, &pair[0]);
+        if (result == -1) {
+            error("Error writing to file", process);
         }
     }
 }
 
+/**
+ * @brief Sends points to 2 child processes.
+ * @param points The points you intend to send to a child process.
+ * @param stored The number of points stored in the points array.
+ * @param axis The axis along which you intend to split the points in two.
+ * @param leftWriteFile The file descriptor of the left child.
+ * @param rightWriteFile The file descriptor of the right child.
+ */
 void ptoc(point *points, ssize_t stored, char axis, FILE *leftWriteFile, FILE *rightWriteFile) {
     float mean = meanpx(points, stored, axis);
 
     for (int i = 0; i < stored; i++) {
         if ((axis == 'x' && points[i].x <= mean) || (axis == 'y' && points[i].y <= mean)) {
             ptofile(leftWriteFile, &points[i]);
-//            fprintf(stderr, "Looooooooooooooo\n");
-//            ptofile(stderr, &points[i]);
         } else {
             ptofile(rightWriteFile, &points[i]);
-//            fprintf(stderr, "Rooooooooooooooo\n");
-//            ptofile(stderr, &points[i]);
         }
     }
 }
 
+/**
+ * @brief Counts the number of coordinates that are identical*.
+ * @details The function does not count ALL identical coordinates.
+ * @param points The array of points of which you wish to count the identical* coordinates of.
+ * @param stored The number of points stored in the points array.
+ * @param axis The axis along which you intend to count the identical* coordinates.
+ * @return The number of identical* coordinates.
+ */
 int countCoordinates(point *points, ssize_t stored, char axis) {
     int count = 0;
     float sameCoordinate = (axis == 'x') ? points[0].x : points[0].y;
@@ -243,7 +273,16 @@ int countCoordinates(point *points, ssize_t stored, char axis) {
     return count;
 }
 
+/**
+ * @brief Finds the closest points from the two sub problems.
+ * @param points The array of points of the upper sub problem.
+ * @param stored The amount of points stored in the points array.
+ * @param mergedChildren &mut Initially an array of points of the better pair of the two sub problems.
+ * @param mean The mean of the points array.
+ * @param axis The axis along which you intend to merge the points.
+ */
 void mergefinal(point *points, ssize_t stored, point mergedChildren[2], float mean, char axis) {
+
     float delta = euclidean(mergedChildren[0], mergedChildren[1]);
     int storedLeftSide = 0;
     point leftSide[stored];
@@ -275,6 +314,15 @@ void mergefinal(point *points, ssize_t stored, point mergedChildren[2], float me
     }
 }
 
+/**
+ * @brief Finds the better pair of from the 2 children.
+ * @param child1Points The points from the first child.
+ * @param a The amount of points from the first child.
+ * @param child2Points The points from the second child.
+ * @param b The amount of points from the first child.
+ * @param mergedChildren &mut An initially empty array of points.
+ * @return -1 if both children failed 0 if everything worked fine.
+ */
 int mergechildren(point child1Points[2], size_t a, point child2Points[2], size_t b, point mergedChildren[2]) {
     if (a == 0  && b == 0) {
         return -1;
@@ -307,23 +355,22 @@ int mergechildren(point child1Points[2], size_t a, point child2Points[2], size_t
     }
 }
 
-
-
+/**
+ * @brief The entrypoint of the program.
+ * @param argc
+ * @param argv
+ * @return EXIT_SUCCESS if everything worked fine else EXIT_FAILURE
+ */
 int main(int argc, char *argv[]) {
 
-    process = argv[0];
+    const char *process = argv[0];
     if (argc != 1) {
-        usage();
+        usage(process);
     }
 
     point *points;
-    ssize_t stored;
+    ssize_t stored = stdintopa(&points, process);
 
-    if ((stored = stdintopa(&points)) == -1)
-    {
-        error("Failed to allocate memory");
-        exit(EXIT_FAILURE);
-    }
 
     switch (stored) {
         case 0:
@@ -336,10 +383,7 @@ int main(int argc, char *argv[]) {
             exit(EXIT_SUCCESS);
             break;
         case 2:
-//            printPairSorted(stderr, points);
-//            fprintf(stderr, "============\n");
-
-            printPairSorted(stdout, points);
+            printPairSorted(stdout, points, process);
             fflush(stdout);
             free(points);
             exit(EXIT_SUCCESS);
@@ -351,12 +395,12 @@ int main(int argc, char *argv[]) {
     int sameY = countCoordinates(points, stored, 'y');
     point samePoints[2];
 
-    // Take care of the case when 2 points are identical
+    // Take care of the case when 2 (or more) points are identical
     if (sameX == stored && sameY == stored) {
         samePoints[0] = points[0];
         samePoints[1] = points[1];
-        printPairSorted(stdout, samePoints);
-        fprintf(stderr, "hello");
+        printPairSorted(stdout, samePoints, process);
+        free(points);
         exit(EXIT_SUCCESS);
     }
 
@@ -381,19 +425,21 @@ int main(int argc, char *argv[]) {
     if (leftChild == -1) {
         fprintf(stderr, "[%s] ERROR: Cannot fork\n", process);
         closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
+        free(points);
         exit(EXIT_FAILURE);
     }
 
     if (leftChild == 0) {
         // 1 is the write end of a pipe
         // 0 is the read end of a pipe
-        // TODO: error handling
-        dup2(leftReadPipe[1], STDOUT_FILENO);
-        dup2(leftWritePipe[0], STDIN_FILENO);
-
+        if (dup2(leftReadPipe[1], STDOUT_FILENO) == -1 ||
+            dup2(leftWritePipe[0], STDIN_FILENO) == -1) {
+            error("Error duplicating pipes", process);
+            exit(EXIT_FAILURE);
+        }
         closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
-
         execlp(process, process, NULL);
+
         fprintf(stderr, "[%s] ERROR: Cannot exec: %s\n", process, strerror(errno));
         free(points);
         exit(EXIT_FAILURE);
@@ -403,22 +449,22 @@ int main(int argc, char *argv[]) {
 
     if (rightChild == -1) {
         fprintf(stderr, "[%s] ERROR: Cannot fork\n", process);
-
         closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
-
+        free(points);
         exit(EXIT_FAILURE);
     }
 
     if (rightChild == 0) {
         // 1 is the write end of a pipe
         // 0 is the read end of a pipe
-        // TODO: error handling
-        dup2(rightReadPipe[1], STDOUT_FILENO);
-        dup2(rightWritePipe[0], STDIN_FILENO);
-
+        if (dup2(rightReadPipe[1], STDOUT_FILENO) == -1 ||
+            dup2(rightWritePipe[0], STDIN_FILENO) == -1) {
+            error("Error duplicating pipes", process);
+            exit(EXIT_FAILURE);
+        }
         closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
-
         execlp(process, process, NULL);
+
         fprintf(stderr, "[%s] ERROR: Cannot exec: %s\n", process, strerror(errno));
         free(points);
         exit(EXIT_FAILURE);
@@ -448,7 +494,12 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "[%s] ERROR: Cannot create file descriptor: %s\n", process, strerror(errno));
 
         free(points);
-        closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
+
+        close(leftWritePipe[1]);
+        close(rightWritePipe[1]);
+
+        close(leftReadPipe[0]);
+        close(rightReadPipe[0]);
 
         int statusLeft, statusRight;
         waitpid(leftChild, &statusLeft, 0);
@@ -469,26 +520,31 @@ int main(int argc, char *argv[]) {
     fclose(leftWriteFile);
     fclose(rightWriteFile);
 
-    // TODO: Add error handling
+    close(leftWritePipe[1]);
+    close(rightWritePipe[1]);
+
+    close(leftReadPipe[0]);
+    close(rightReadPipe[0]);
+
     int statusLeft, statusRight;
     waitpid(leftChild, &statusLeft, 0);
     waitpid(rightChild, &statusRight, 0);
 
     if (WEXITSTATUS(statusLeft) == EXIT_FAILURE) {
         free(points);
-        exit(EXIT_FAILURE);
+        error("Left child died.", process)
     }
     if (WEXITSTATUS(statusRight) == EXIT_FAILURE) {
         free(points);
-        exit(EXIT_FAILURE);
+        error("Right child died", process);
     }
 
     point child1Points[2];
     point child2Points[2];
     point mergedChildren[2];
 
-    size_t a = ctop(leftReadFile, child1Points);
-    size_t b = ctop(rightReadFile, child2Points);
+    size_t a = ctop(leftReadFile, child1Points, process);
+    size_t b = ctop(rightReadFile, child2Points, process);
 
     float mean = (sameX == stored) ? meanpx(points, stored, 'y') : meanpx(points, stored, 'x');
     char axis = (sameX == stored) ? 'y' : 'x';
@@ -499,5 +555,5 @@ int main(int argc, char *argv[]) {
     printPairSorted(stdout, mergedChildren);
 
     free(points);
-    return 0;
+    return EXIT_SUCCESS;
 }
