@@ -242,23 +242,24 @@ int countCoordinates(point *points, ssize_t stored, char axis) {
 
     return count;
 }
-
 void mergefinal(point *points, ssize_t stored, point mergedChildren[2], float mean, char axis) {
     float delta = euclidean(mergedChildren[0], mergedChildren[1]);
     int storedLeftSide = 0;
     point leftSide[stored];
 
     for (ssize_t i = 0; i < stored; ++i) {
-        // Check if point is on the left side and withing the delta region
-        if (points[i].x < mean && (points[i].x + delta) > mean) {
+        // Check if point is on the left side and within the delta region based on the specified axis
+        if ((axis == 'x' && points[i].x < mean && (points[i].x + delta) > mean) ||
+            (axis == 'y' && points[i].y < mean && (points[i].y + delta) > mean)) {
             leftSide[storedLeftSide] = points[i];
             storedLeftSide += 1;
         }
     }
 
     for (ssize_t j = 0; j < stored; ++j) {
-        if (points[j].x < mean || points[j].x - mean > delta) {
-            // Skipp all irrelevant points
+        if ((axis == 'x' && points[j].x < mean) || (axis == 'y' && points[j].y < mean) ||
+            (axis == 'x' && points[j].x - mean > delta) || (axis == 'y' && points[j].y - mean > delta)) {
+            // Skip all irrelevant points based on the specified axis
             continue;
         }
 
@@ -272,6 +273,7 @@ void mergefinal(point *points, ssize_t stored, point mergedChildren[2], float me
         }
     }
 }
+
 
 
 int mergechildren(point child1Points[2], int a, point child2Points[2], int b, point mergedChildren[2]) {
