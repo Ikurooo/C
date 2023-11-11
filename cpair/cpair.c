@@ -294,15 +294,15 @@ int mergechildren(point child1Points[2], size_t a, point child2Points[2], size_t
         return 0;
     }
 
-    if (euclidean(child2Points[0], child2Points[1]) <=
-        euclidean(child1Points[0], child2Points[1]))
+    if (euclidean(child1Points[0], child1Points[1]) <=
+        euclidean(child2Points[0], child2Points[1]))
     {
-        mergedChildren[0] = child2Points[0];
-        mergedChildren[1] = child2Points[1];
-        return 0;
-    } else {
         mergedChildren[0] = child1Points[0];
         mergedChildren[1] = child1Points[1];
+        return 0;
+    } else {
+        mergedChildren[0] = child2Points[0];
+        mergedChildren[1] = child2Points[1];
         return 0;
     }
 }
@@ -336,8 +336,8 @@ int main(int argc, char *argv[]) {
             exit(EXIT_SUCCESS);
             break;
         case 2:
-            printPairSorted(stderr, points);
-            fprintf(stderr, "============\n");
+//            printPairSorted(stderr, points);
+//            fprintf(stderr, "============\n");
 
             printPairSorted(stdout, points);
             fflush(stdout);
@@ -352,10 +352,11 @@ int main(int argc, char *argv[]) {
     point samePoints[2];
 
     // Take care of the case when 2 points are identical
-    if (sameX == stored || sameY == stored) {
+    if (sameX == stored && sameY == stored) {
         samePoints[0] = points[0];
         samePoints[1] = points[1];
         printPairSorted(stdout, samePoints);
+        fprintf(stderr, "hello");
         exit(EXIT_SUCCESS);
     }
 
