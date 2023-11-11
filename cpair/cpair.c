@@ -366,7 +366,6 @@ int main(int argc, char *argv[]) {
     point *points;
     ssize_t stored = stdintopa(&points, process);
 
-
     switch (stored) {
         case 0:
             fprintf(stderr, "[%s] ERROR: No points provided via stdin!\n", process);
@@ -537,8 +536,8 @@ int main(int argc, char *argv[]) {
     close(leftReadPipe[0]);
     close(rightReadPipe[0]);
 
-    float mean = (sameX == stored) ? meanpx(points, stored, 'y') : meanpx(points, stored, 'x');
     char axis = (sameX == stored) ? 'y' : 'x';
+    float mean = meanpx(points, stored, axis);
 
     mergechildren(child1Points, a, child2Points, b, mergedChildren);
     mergefinal(points, stored, mergedChildren, mean, axis);
