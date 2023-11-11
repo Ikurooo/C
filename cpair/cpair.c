@@ -395,6 +395,7 @@ int main(int argc, char *argv[]) {
         samePoints[0] = points[0];
         samePoints[1] = points[1];
         printpairsorted(stdout, samePoints);
+        free(points);
         exit(EXIT_SUCCESS);
     }
 
