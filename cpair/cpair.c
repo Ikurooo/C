@@ -204,7 +204,7 @@ float euclidean(point p1, point p2) {
  * @param file The file you intend to print to.
  * @param pair &mut An array of exactly 2 points.
  */
-void printPairSorted(FILE *file, point pair[2]) {
+void printpairsorted(FILE *file, point pair[2]) {
     if (pair[0].x == pair[1].x) {
         // If x values are equal, sort based on y values
         if (pair[0].y <= pair[1].y) {
@@ -254,7 +254,7 @@ void ptoc(point *points, ssize_t stored, char axis, FILE *leftWriteFile, FILE *r
  * @param axis The axis along which you intend to count the identical* coordinates.
  * @return The number of identical* coordinates.
  */
-int countCoordinates(point *points, ssize_t stored, char axis) {
+int countcoordinates(point *points, ssize_t stored, char axis) {
     int count = 0;
     float sameCoordinate = (axis == 'x') ? points[0].x : points[0].y;
 
@@ -378,7 +378,7 @@ int main(int argc, char *argv[]) {
             exit(EXIT_SUCCESS);
             break;
         case 2:
-            printPairSorted(stdout, points);
+            printpairsorted(stdout, points);
             fflush(stdout);
             free(points);
             exit(EXIT_SUCCESS);
@@ -386,15 +386,15 @@ int main(int argc, char *argv[]) {
             break;
     }
 
-    int sameX = countCoordinates(points, stored, 'x');
-    int sameY = countCoordinates(points, stored, 'y');
+    int sameX = countcoordinates(points, stored, 'x');
+    int sameY = countcoordinates(points, stored, 'y');
     point samePoints[2];
 
     // Take care of the case when 2 (or more) points are identical
     if (sameX == stored && sameY == stored) {
         samePoints[0] = points[0];
         samePoints[1] = points[1];
-        printPairSorted(stdout, samePoints);
+        printpairsorted(stdout, samePoints);
         exit(EXIT_SUCCESS);
     }
 
@@ -419,6 +419,7 @@ int main(int argc, char *argv[]) {
     if (leftChild == -1) {
         fprintf(stderr, "[%s] ERROR: Cannot fork\n", process);
         closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
+        free(points);
         exit(EXIT_FAILURE);
     }
 
@@ -443,6 +444,7 @@ int main(int argc, char *argv[]) {
     if (rightChild == -1) {
         fprintf(stderr, "[%s] ERROR: Cannot fork\n", process);
         closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
+        free(points);
         exit(EXIT_FAILURE);
     }
 
@@ -499,13 +501,9 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    if (sameX == stored) {
-        // Sort based on y coordinate
-        ptoc(points, stored, 'y', leftWriteFile, rightWriteFile);
-    } else {
-        // Sort based on x coordinate
-        ptoc(points, stored, 'x', leftWriteFile, rightWriteFile);
-    }
+    (sameX == stored) ?
+    ptoc(points, stored, 'y', leftWriteFile, rightWriteFile):
+    ptoc(points, stored, 'x', leftWriteFile, rightWriteFile);
 
     fflush(leftWriteFile);
     fflush(rightWriteFile);
@@ -544,7 +542,7 @@ int main(int argc, char *argv[]) {
     mergechildren(child1Points, a, child2Points, b, mergedChildren);
     mergefinal(points, stored, mergedChildren, mean, axis);
 
-    printPairSorted(stdout, mergedChildren);
+    printpairsorted(stdout, mergedChildren);
 
     free(points);
     return EXIT_SUCCESS;
