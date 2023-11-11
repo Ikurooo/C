@@ -485,10 +485,13 @@ int main(int argc, char *argv[]) {
         rightReadFile == NULL || rightWriteFile == NULL)
     {
         fprintf(stderr, "[%s] ERROR: Cannot create file descriptor: %s\n", process, strerror(errno));
-
         free(points);
 
-        closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
+        close(leftWritePipe[1]);
+        close(rightWritePipe[1]);
+
+        close(leftReadPipe[0]);
+        close(rightReadPipe[0]);
 
         int statusLeft, statusRight;
         waitpid(leftChild, &statusLeft, 0);
@@ -528,6 +531,12 @@ int main(int argc, char *argv[]) {
 
     size_t a = ctop(leftReadFile, child1Points, process);
     size_t b = ctop(rightReadFile, child2Points, process);
+
+    close(leftWritePipe[1]);
+    close(rightWritePipe[1]);
+
+    close(leftReadPipe[0]);
+    close(rightReadPipe[0]);
 
     float mean = (sameX == stored) ? meanpx(points, stored, 'y') : meanpx(points, stored, 'x');
     char axis = (sameX == stored) ? 'y' : 'x';
