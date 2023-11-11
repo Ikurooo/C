@@ -101,8 +101,7 @@ point strtop(char *input, const char *process) {
 
 /**
  * @brief Closes all ends of both child pipe
- * @details It is assumed that all necessary file descriptor duplications were done
- * prior to calling this function
+ * @details It is assumed that all necessary file descriptor duplications were done prior to calling this function
  * @param rightReadPipe The right parent read pipe that you intend to close.
  * @param leftReadPipe The left parent read pipe that you intend to close.
  * @param rightWritePipe The left parent write pipe that you intend to close.
@@ -204,24 +203,29 @@ float euclidean(point p1, point p2) {
  * @param file The file you intend to print to.
  * @param pair &mut An array of exactly 2 points.
  */
-void printpairsorted(FILE *file, point pair[2]) {
-    if (pair[0].x == pair[1].x) {
-        // If x values are equal, sort based on y values
-        if (pair[0].y <= pair[1].y) {
-            ptofile(file, &pair[0]);
-            ptofile(file, &pair[1]);
-        } else {
-            ptofile(file, &pair[1]);
-            ptofile(file, &pair[0]);
+void printpairsorted(FILE *file, point pair[2], const char *process) {
+    int result;
+
+    if ((pair[0].x == pair[1].x && pair[0].y <= pair[1].y) ||
+        (pair[0].x < pair[1].x)) {
+        result = ptofile(file, &pair[0]);
+        if (result == -1) {
+            error("Error writing to file", process);
+        }
+
+        result = ptofile(file, &pair[1]);
+        if (result == -1) {
+            error("Error writing to file", process);
         }
     } else {
-        // If x values are different, sort based on x values
-        if (pair[0].x < pair[1].x) {
-            ptofile(file, &pair[0]);
-            ptofile(file, &pair[1]);
-        } else {
-            ptofile(file, &pair[1]);
-            ptofile(file, &pair[0]);
+        result = ptofile(file, &pair[1]);
+        if (result == -1) {
+            error("Error writing to file", process);
+        }
+
+        result = ptofile(file, &pair[0]);
+        if (result == -1) {
+            error("Error writing to file", process);
         }
     }
 }
@@ -377,7 +381,7 @@ int main(int argc, char *argv[]) {
             exit(EXIT_SUCCESS);
             break;
         case 2:
-            printpairsorted(stdout, points);
+            printpairsorted(stdout, points, process);
             fflush(stdout);
             free(points);
             exit(EXIT_SUCCESS);
@@ -393,7 +397,7 @@ int main(int argc, char *argv[]) {
     if (sameX == stored && sameY == stored) {
         samePoints[0] = points[0];
         samePoints[1] = points[1];
-        printpairsorted(stdout, samePoints);
+        printpairsorted(stdout, samePoints, process);
         free(points);
         exit(EXIT_SUCCESS);
     }
@@ -464,14 +468,12 @@ int main(int argc, char *argv[]) {
         free(points);
         exit(EXIT_FAILURE);
     }
-
     // 1 is the write end of a pipe
     // 0 is the read end of a pipe
     // Close off unused pipe ends (parent)
 
     close(leftWritePipe[0]);
     close(rightWritePipe[0]);
-
     close(leftReadPipe[1]);
     close(rightReadPipe[1]);
 
@@ -491,7 +493,6 @@ int main(int argc, char *argv[]) {
 
         close(leftWritePipe[1]);
         close(rightWritePipe[1]);
-
         close(leftReadPipe[0]);
         close(rightReadPipe[0]);
 
@@ -532,7 +533,6 @@ int main(int argc, char *argv[]) {
 
     close(leftWritePipe[1]);
     close(rightWritePipe[1]);
-
     close(leftReadPipe[0]);
     close(rightReadPipe[0]);
 
@@ -542,7 +542,7 @@ int main(int argc, char *argv[]) {
     mergechildren(child1Points, a, child2Points, b, mergedChildren);
     mergefinal(points, stored, mergedChildren, mean, axis);
 
-    printpairsorted(stdout, mergedChildren);
+    printpairsorted(stdout, mergedChildren, process);
 
     free(points);
     return EXIT_SUCCESS;
