@@ -242,6 +242,7 @@ int countCoordinates(point *points, ssize_t stored, char axis) {
 
     return count;
 }
+
 void mergefinal(point *points, ssize_t stored, point mergedChildren[2], float mean, char axis) {
     float delta = euclidean(mergedChildren[0], mergedChildren[1]);
     int storedLeftSide = 0;
@@ -274,9 +275,7 @@ void mergefinal(point *points, ssize_t stored, point mergedChildren[2], float me
     }
 }
 
-
-
-int mergechildren(point child1Points[2], int a, point child2Points[2], int b, point mergedChildren[2]) {
+int mergechildren(point child1Points[2], size_t a, point child2Points[2], size_t b, point mergedChildren[2]) {
     if (a == 0  && b == 0) {
         return -1;
     }
@@ -490,8 +489,13 @@ int main(int argc, char *argv[]) {
     size_t a = ctop(leftReadFile, child1Points);
     size_t b = ctop(rightReadFile, child2Points);
 
-    printPairSorted(stdout, child1Points);
-    printPairSorted(stdout, child2Points);
+    float mean = (sameX == stored) ? meanpx(points, stored, 'y') : meanpx(points, stored, 'x');
+    char axis = (sameX == stored) ? 'y' : 'x';
+
+    mergechildren(child1Points, a, child2Points, b, mergedChildren);
+    mergefinal(points, stored, mergedChildren, mean, axis);
+
+    printPairSorted(stdout, mergedChildren);
 
     free(points);
     return 0;
