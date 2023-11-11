@@ -204,29 +204,24 @@ float euclidean(point p1, point p2) {
  * @param file The file you intend to print to.
  * @param pair &mut An array of exactly 2 points.
  */
-void printPairSorted(FILE *file, point pair[2], const char *process) {
-    int result;
-
-    if ((pair[0].x == pair[1].x && pair[0].y <= pair[1].y) ||
-        (pair[0].x < pair[1].x)) {
-        result = ptofile(file, &pair[0]);
-        if (result == -1) {
-            error("Error writing to file", process);
-        }
-
-        result = ptofile(file, &pair[1]);
-        if (result == -1) {
-            error("Error writing to file", process);
+void printPairSorted(FILE *file, point pair[2]) {
+    if (pair[0].x == pair[1].x) {
+        // If x values are equal, sort based on y values
+        if (pair[0].y <= pair[1].y) {
+            ptofile(file, &pair[0]);
+            ptofile(file, &pair[1]);
+        } else {
+            ptofile(file, &pair[1]);
+            ptofile(file, &pair[0]);
         }
     } else {
-        result = ptofile(file, &pair[1]);
-        if (result == -1) {
-            error("Error writing to file", process);
-        }
-
-        result = ptofile(file, &pair[0]);
-        if (result == -1) {
-            error("Error writing to file", process);
+        // If x values are different, sort based on x values
+        if (pair[0].x < pair[1].x) {
+            ptofile(file, &pair[0]);
+            ptofile(file, &pair[1]);
+        } else {
+            ptofile(file, &pair[1]);
+            ptofile(file, &pair[0]);
         }
     }
 }
@@ -383,7 +378,7 @@ int main(int argc, char *argv[]) {
             exit(EXIT_SUCCESS);
             break;
         case 2:
-            printPairSorted(stdout, points, process);
+            printPairSorted(stdout, points);
             fflush(stdout);
             free(points);
             exit(EXIT_SUCCESS);
@@ -399,8 +394,7 @@ int main(int argc, char *argv[]) {
     if (sameX == stored && sameY == stored) {
         samePoints[0] = points[0];
         samePoints[1] = points[1];
-        printPairSorted(stdout, samePoints, process);
-        free(points);
+        printPairSorted(stdout, samePoints);
         exit(EXIT_SUCCESS);
     }
 
@@ -425,7 +419,6 @@ int main(int argc, char *argv[]) {
     if (leftChild == -1) {
         fprintf(stderr, "[%s] ERROR: Cannot fork\n", process);
         closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
-        free(points);
         exit(EXIT_FAILURE);
     }
 
@@ -450,7 +443,6 @@ int main(int argc, char *argv[]) {
     if (rightChild == -1) {
         fprintf(stderr, "[%s] ERROR: Cannot fork\n", process);
         closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
-        free(points);
         exit(EXIT_FAILURE);
     }
 
@@ -462,6 +454,7 @@ int main(int argc, char *argv[]) {
             error("Error duplicating pipes", process);
             exit(EXIT_FAILURE);
         }
+
         closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
         execlp(process, process, NULL);
 
@@ -495,11 +488,7 @@ int main(int argc, char *argv[]) {
 
         free(points);
 
-        close(leftWritePipe[1]);
-        close(rightWritePipe[1]);
-
-        close(leftReadPipe[0]);
-        close(rightReadPipe[0]);
+        closepipes(rightReadPipe, leftReadPipe, rightWritePipe, leftWritePipe);
 
         int statusLeft, statusRight;
         waitpid(leftChild, &statusLeft, 0);
@@ -520,23 +509,17 @@ int main(int argc, char *argv[]) {
     fclose(leftWriteFile);
     fclose(rightWriteFile);
 
-    close(leftWritePipe[1]);
-    close(rightWritePipe[1]);
-
-    close(leftReadPipe[0]);
-    close(rightReadPipe[0]);
-
     int statusLeft, statusRight;
     waitpid(leftChild, &statusLeft, 0);
     waitpid(rightChild, &statusRight, 0);
 
     if (WEXITSTATUS(statusLeft) == EXIT_FAILURE) {
         free(points);
-        error("Left child died.", process)
+        exit(EXIT_FAILURE);
     }
     if (WEXITSTATUS(statusRight) == EXIT_FAILURE) {
         free(points);
-        error("Right child died", process);
+        exit(EXIT_FAILURE);
     }
 
     point child1Points[2];
