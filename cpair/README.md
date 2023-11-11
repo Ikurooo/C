@@ -28,28 +28,29 @@ make all
 ### Using Command-line Arguments
 
 ```sh
-./mycompress [-o INPUT FILE] [OUTPUT FILES...]
-# leave blank for stdin and stdout
+./cpair [This program takes no arguments]
+# Valid points are as follows: each coordinnate must be separated by a space.
+# Each point must be separated by a newline '\n'.
 ```
 
 ### Examples
 
 ```sh
-./mycompress.c infile1 infile2
+./cpair < 10points
 ```
 
 (or)
 
 ```sh
-echo -e "some text" | ./mycompress -o outfile
+./cpair < splitpoints
 ```
 
 (or)
 
 ```sh
-./mycompress -o outfile infile1 infile2
+./cpair < 250points
 ```
 
 ### Disclaimer
 
--o flag should always appear before any input files
+If you wish to input points after the program has been started you should end your points with EOF (ctrl + D).
