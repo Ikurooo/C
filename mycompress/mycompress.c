@@ -94,16 +94,17 @@ int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
  * @param argv
  * @return EXIT_SUCCESS on success, otherwise EXIT_FAILURE.
  **/
-
 int main(int argc, char *argv[]) {
     const char *program_name = argv[0];
     const char *outfile_name = NULL;
+    uint16_t read = 0, written = 0;
+    FILE *outfile = stdout;
 
     int option;
     while ((option = getopt(argc, argv, "o:")) != -1) {
         switch (option) {
             case 'o':
-                if (outfile_name != NULL) {
+                if (outfile_name) {
                     fprintf(stderr, "[%s] ERROR: flag -o can only appear once\n", program_name);
                     usage(program_name);
                 }
@@ -117,53 +118,40 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Handle outfile
-    FILE *outfile = stdout;
-    if (outfile_name != NULL) {
+    if (outfile_name) {
         outfile = fopen(outfile_name, "w");
-        if (outfile == NULL) {
-            fprintf(stderr, "[%s] ERROR: An error occurred while opening file %s\n", program_name, outfile_name);
+        if (!outfile) {
+            perror(program_name);
             exit(EXIT_FAILURE);
         }
     }
 
-    // Parse input files
-    int length = argc - optind;
-    uint16_t read, written = 0;
     FILE *infile = stdin;
-    const char *infile_name = NULL;
-
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < argc - optind; i++) {
         infile = fopen(argv[optind + i], "r");
-        if (infile == NULL) {
-            goto SINGLE_FILE;
-        }
+        if (!infile) goto SINGLE_FILE;
 
         int error = compress(infile, outfile, &read, &written);
-        if (error < 0) {
-            goto BOTH_FILES;
-        }
         fclose(infile);
-    }
 
-    if (length == 0) {
-        int error = compress(infile, outfile, &read, &written);
-        if (error != 0) {
-            fprintf(stderr, "[%s] ERROR: An error occurred while compressing stdin\n", program_name);
+        if (error < 0) {
+            fprintf(stderr, "[%s] ERROR: An error occurred while compressing %s\n", program_name, argc - optind == 0 ? "stdin" : argv[optind + i]);
             goto BOTH_FILES;
         }
     }
 
-    if (outfile != stdout) {
-        fclose(outfile);
+    if (argc - optind == 0) {
+        int error = compress(infile, outfile, &read, &written);
+        if (error < 0) {fprintf(stderr, "[%s] ERROR: An error occurred while compressing stdin\n", program_name);}
     }
+
+    if (outfile != stdout) fclose(outfile);
 
     fprintf(stderr, "Read: %d characters\n", read);
     fprintf(stderr, "Written: %d characters\n", written);
     return EXIT_SUCCESS;
 
     BOTH_FILES:
-    fprintf(stderr, "[%s] ERROR: An error occurred while compressing file %s\n", program_name, infile_name);
     fclose(infile);
     SINGLE_FILE:
     fclose(outfile);
