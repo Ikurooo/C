@@ -127,23 +127,14 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Collect input file names
-    int length = argc - optind;
-    char *filenames[length];
-
-    for (int i = 0; i < length; i++) {
-        filenames[i] = argv[optind + i];
-    }
-
     // Parse input files
-    uint16_t read = 0;
-    uint16_t written = 0;
-    FILE *infile = NULL;
+    int length = argc - optind;
+    uint16_t read, written = 0;
+    FILE *infile = stdin;
     const char *infile_name = NULL;
 
     for (int i = 0; i < length; i++) {
-        infile_name = filenames[i];
-        infile = fopen(infile_name, "r");
+        infile = fopen(argv[optind + i], "r");
         if (infile == NULL) {
             goto SINGLE_FILE;
         }
@@ -156,7 +147,6 @@ int main(int argc, char *argv[]) {
     }
 
     if (length == 0) {
-        infile = stdin;
         int error = compress(infile, outfile, &read, &written);
         if (error != 0) {
             fprintf(stderr, "[%s] ERROR: An error occurred while compressing stdin\n", program_name);
