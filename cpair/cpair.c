@@ -2,7 +2,6 @@
  * @file cpair.c
  * @author Ivan Cankov 12219400 <e12219400@student.tuwien.ac.at>
  * @date 05.11.2023
- *
  * @brief A C program for finding the closest pair
  **/
 
@@ -110,13 +109,10 @@ point strtop(char *input, const char *process) {
 void closepipes(int rightReadPipe[2], int leftReadPipe[2], int rightWritePipe[2], int leftWritePipe[2]) {
     close(rightReadPipe[0]);
     close(rightReadPipe[1]);
-
     close(rightWritePipe[0]);
     close(rightWritePipe[1]);
-
     close(leftReadPipe[0]);
     close(leftWritePipe[1]);
-
     close(leftReadPipe[1]);
     close(leftWritePipe[0]);
 }
@@ -539,7 +535,11 @@ int main(int argc, char *argv[]) {
     char axis = (sameX == stored) ? 'y' : 'x';
     float mean = meanpx(points, stored, axis);
 
-    mergechildren(child1Points, a, child2Points, b, mergedChildren);
+    if ((mergechildren(child1Points, a, child2Points, b, mergedChildren)) != 0) {
+        free(points);
+        exit(EXIT_FAILURE);
+    }
+
     mergefinal(points, stored, mergedChildren, mean, axis);
 
     printpairsorted(stdout, mergedChildren, process);
