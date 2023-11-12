@@ -37,7 +37,7 @@ void usage(const char *program_name) {
 int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
     char *line = NULL;
     size_t size = 0;
-    int error;
+    ssize_t error;
 
     while ((error = getline(&line, &size, in)) >= 0) {
         if (error < 0) {
@@ -152,6 +152,7 @@ int main(int argc, char *argv[]) {
         if (error < 0) {
             goto BOTH_FILES;
         }
+        fclose(infile);
     }
 
     if (length == 0) {
