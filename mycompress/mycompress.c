@@ -95,7 +95,6 @@ int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
  * @return EXIT_SUCCESS on success, otherwise EXIT_FAILURE.
  **/
 int main(int argc, char *argv[]) {
-    const char *program_name = argv[0];
     const char *outfile_name = NULL;
     uint16_t read = 0, written = 0;
     FILE *outfile = stdout;
@@ -105,13 +104,13 @@ int main(int argc, char *argv[]) {
         switch (option) {
             case 'o':
                 if (outfile_name) {
-                    fprintf(stderr, "[%s] ERROR: flag -o can only appear once\n", program_name);
-                    usage(program_name);
+                    fprintf(stderr, "[%s] ERROR: flag -o can only appear once\n", argv[0]);
+                    usage(argv[0]);
                 }
                 outfile_name = optarg;
                 break;
             case '?':
-                usage(program_name);
+                usage(argv[0]);
                 break;
             default:
                 assert(0);
@@ -121,7 +120,7 @@ int main(int argc, char *argv[]) {
     if (outfile_name) {
         outfile = fopen(outfile_name, "w");
         if (!outfile) {
-            perror(program_name);
+            perror(argv[0]);
             exit(EXIT_FAILURE);
         }
     }
@@ -135,14 +134,14 @@ int main(int argc, char *argv[]) {
         fclose(infile);
 
         if (error < 0) {
-            fprintf(stderr, "[%s] ERROR: An error occurred while compressing %s\n", program_name, argc - optind == 0 ? "stdin" : argv[optind + i]);
+            fprintf(stderr, "[%s] ERROR: An error occurred while compressing %s\n", argv[0], argc - optind == 0 ? "stdin" : argv[optind + i]);
             goto BOTH_FILES;
         }
     }
 
     if (argc - optind == 0) {
         int error = compress(infile, outfile, &read, &written);
-        if (error < 0) {fprintf(stderr, "[%s] ERROR: An error occurred while compressing stdin\n", program_name);}
+        if (error < 0) {fprintf(stderr, "[%s] ERROR: An error occurred while compressing stdin\n", argv[0]);}
     }
 
     if (outfile != stdout) fclose(outfile);
