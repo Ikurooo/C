@@ -9,7 +9,7 @@
                                                                         
 =========================================================================
 mycompress - a simple compression algorithm in C
-cpair - a multithreaded closest pair algorithm in C
+cpair - a multiprocess closest pair algorithm in C
 </pre>
 
 
