@@ -2,6 +2,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <stdbool.h>
+
 
 void stripnewline(char *line) {
     size_t linelen = strlen(line);
@@ -186,12 +190,51 @@ int main(int argc, char *argv[]) {
         leftReadFile == NULL || rightReadFile == NULL) {
 
         free(strings);
+
+        close(leftReadPipe[0]);
+        close(leftWritePipe[1]);
+
+        close(rightReadPipe[0]);
+        close(rightWritePipe[1]);
+
         perror("Error opening file descriptors.");
         exit(EXIT_FAILURE);
     }
 
+    writetofile(leftWriteFile, rightWriteFile, &strings, stored);
+    fflush(leftWriteFile);
+    fflush(rightWriteFile);
+    fclose(leftWriteFile);
+    fclose(rightWriteFile);
+
+    int statusLeft;
+    int statusRight;
+
+    waitpid(leftChild, &statusLeft, 0);
+    waitpid(rightChild, &statusRight, 0);
+
+    if (WIFEXITED(statusLeft) == true && WIFEXITED(statusRight) == true) {
+        if (WEXITSTATUS(leftChild) == EXIT_FAILURE || WEXITSTATUS(rightChild) == EXIT_FAILURE) {
+            free(strings);
+
+            close(leftReadPipe[0]);
+            close(leftWritePipe[1]);
+
+            close(rightReadPipe[0]);
+            close(rightWritePipe[1]);
+
+            perror("Child died.");
+            exit(EXIT_FAILURE);
+        }
+    }
 
 
+
+    close(leftReadPipe[0]);
+    close(leftWritePipe[1]);
+
+    close(rightReadPipe[0]);
+    close(rightWritePipe[1]);
 
     free(strings);
     return EXIT_SUCCESS;
