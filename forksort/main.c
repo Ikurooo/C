@@ -87,6 +87,14 @@ void closepipes(int leftWritePipe[2], int rightWritePipe[2], int leftReadPipe[2]
 
 int main(int argc, char *argv[]) {
 
+    switch (argc) {
+        case 1:
+            break;
+        default:
+            perror("[%s] ERROR: %s does not take any arguments!");
+            exit(EXIT_FAILURE);
+    }
+
     char **strings;
     ssize_t stored = filetostrarray(stdin, &strings);
 
@@ -97,6 +105,7 @@ int main(int argc, char *argv[]) {
             break;
         case 1:
             fprintf(stdout, "%s\n", strings[0]);
+            fflush(stdout);
             free(strings);
             exit(EXIT_SUCCESS);
             break;
