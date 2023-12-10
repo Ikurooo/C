@@ -86,7 +86,7 @@ static void shutdown() {
         if (semFree != NULL) {
             for (size_t i = 0; i < buf->numOfGenerators; i++) {
                 if (sem_post(semFree) < 0) {
-                    ERROR_MSG("Error while sem_post for sem_free", strerror(errno));
+                    ERROR_MSG("Error while sem_post for free", strerror(errno));
                 }
             }
         }
@@ -101,31 +101,31 @@ static void shutdown() {
 
     if (semUsed != NULL) {
         if (sem_close(semUsed) < 0) {
-            ERROR_MSG("Error closing sem_used", strerror(errno));
+            ERROR_MSG("Error closing used", strerror(errno));
         }
         if (sem_unlink(SEM_USED) < 0 && errno != ENOENT) {
             // Only print the error if it's not "No such file or directory"
-            ERROR_MSG("Error unlinking SEM_USED", strerror(errno));
+            ERROR_MSG("Error unlinking USED", strerror(errno));
         }
     }
 
     if (semFree != NULL) {
         if (sem_close(semFree) < 0) {
-            ERROR_MSG("Error closing sem_free", strerror(errno));
+            ERROR_MSG("Error closing free", strerror(errno));
         }
         if (sem_unlink(SEM_FREE) < 0 && errno != ENOENT) {
             // Only print the error if it's not "No such file or directory"
-            ERROR_MSG("Error unlinking SEM_FREE", strerror(errno));
+            ERROR_MSG("Error unlinking FREE", strerror(errno));
         }
     }
 
     if (semMutex != NULL) {
         if (sem_close(semMutex) < 0) {
-            ERROR_MSG("Error closing sem_mutex", strerror(errno));
+            ERROR_MSG("Error closing mutex", strerror(errno));
         }
         if (sem_unlink(SEM_MUTEX) < 0 && errno != ENOENT) {
             // Only print the error if it's not "No such file or directory"
-            ERROR_MSG("Error unlinking SEM_MUTEX", strerror(errno));
+            ERROR_MSG("Error unlinking MUTEX", strerror(errno));
         }
     }
 
@@ -198,15 +198,15 @@ static void startup() {
     // create semaphores
     semUsed = sem_open(SEM_USED, O_CREAT | O_EXCL, 0600, 0);
     if (semUsed == SEM_FAILED) {
-        ERROR_EXIT("Error creating used_sem", strerror(errno));
+        ERROR_EXIT("Error creating used", strerror(errno));
     }
     semFree = sem_open(SEM_FREE, O_CREAT | O_EXCL, 0600, BUF_SIZE);
     if (semFree == SEM_FAILED) {
-        ERROR_EXIT("Error creating sem_free", strerror(errno));
+        ERROR_EXIT("Error creating free", strerror(errno));
     }
     semMutex = sem_open(SEM_MUTEX, O_CREAT | O_EXCL, 0600, 1);
     if (semMutex == SEM_FAILED) {
-        ERROR_EXIT("Error creating sem_mutex", strerror(errno));
+        ERROR_EXIT("Error creating mutex", strerror(errno));
     }
 }
 
@@ -221,7 +221,7 @@ static void startup() {
 static void waitAndRead() {
     if (sem_wait(semUsed) < 0) {
         if (errno != EINTR) {
-            ERROR_EXIT("Error while sem_wait", strerror(errno));
+            ERROR_EXIT("Error while executing sem_wait", strerror(errno));
         }
     }
     if (buf->terminate) {
@@ -275,15 +275,15 @@ static void solutions(long maxSolutions) {
             buf->terminate = 1;
         } else if (candidate.stored < solution.stored) {
             solution = candidate;
-            printf("Solution with %zu edges:", solution.stored);
+            fprintf(stderr,"Solution with %zu edges:", solution.stored);
             for (size_t i = 0; i < solution.stored; i++) {
-                printf(" %ld-%ld", solution.list[i].u, solution.list[i].v);
+                fprintf(stderr," %ld-%ld", solution.list[i].u, solution.list[i].v);
             }
-            printf("\n");
+            fprintf(stderr, "\n");
         }
     }
-    if (maxSolutions < buf->numberOfSolutions) {
-        printf("The graph might not be acyclic, best solution removes %zu edges.", solution.stored);
+    if (maxSolutions <= buf->numberOfSolutions) {
+        printf("The graph might not be acyclic, best solution removes %zu edges.\n", solution.stored);
     }
 }
 
