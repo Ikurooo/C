@@ -58,23 +58,28 @@ static void shutdown() {
         if (sem_close(semUsed) < 0) {
             ERROR_MSG("Error closing sem_used", strerror(errno));
         }
-        if (sem_unlink(SEM_USED) < 0) {
+        if (sem_unlink(SEM_USED) < 0 && errno != ENOENT) {
+            // Only print the error if it's not "No such file or directory"
             ERROR_MSG("Error unlinking SEM_USED", strerror(errno));
         }
     }
-    if (semUsed != NULL) {
-        if (sem_close(semUsed) < 0) {
+
+    if (semFree != NULL) {
+        if (sem_close(semFree) < 0) {
             ERROR_MSG("Error closing sem_free", strerror(errno));
         }
-        if (sem_unlink(SEM_FREE) < 0) {
+        if (sem_unlink(SEM_FREE) < 0 && errno != ENOENT) {
+            // Only print the error if it's not "No such file or directory"
             ERROR_MSG("Error unlinking SEM_FREE", strerror(errno));
         }
     }
-    if (semUsed != NULL) {
-        if (sem_close(semUsed) < 0) {
+
+    if (semMutex != NULL) {
+        if (sem_close(semMutex) < 0) {
             ERROR_MSG("Error closing sem_mutex", strerror(errno));
         }
-        if (sem_unlink(SEM_MUTEX) < 0) {
+        if (sem_unlink(SEM_MUTEX) < 0 && errno != ENOENT) {
+            // Only print the error if it's not "No such file or directory"
             ERROR_MSG("Error unlinking SEM_MUTEX", strerror(errno));
         }
     }
