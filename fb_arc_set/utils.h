@@ -1,6 +1,10 @@
-//
-// Created by ivan on 12/9/23.
-//
+/**
+ * @file utils.h
+ * @author Ivan Cankov 12219400
+ * @date 12.09.2023
+ * @brief OSUE Exercise 2 fb_arc_set
+ * @details utilities for the generator and supervisor.
+ */
 
 #ifndef FB_ARC_SET_UTILS_H
 #define FB_ARC_SET_UTILS_H
