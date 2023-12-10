@@ -48,6 +48,7 @@ typedef struct {
     unsigned int terminate;
     unsigned int numberOfGenerators;
     int numOfGenerators;
+    long numberOfSolutions;
 } cbuf;
 
 #endif //FB_ARC_SET_UTILS_H

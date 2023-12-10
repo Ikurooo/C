@@ -1,6 +1,14 @@
-//
-// Created by ivan on 12/9/23.
-//
+/**
+ * @file supervisor.c
+ * @author Ivan Cankov 12219400
+ * @date 12.09.2023
+ * @brief OSUE Exercise 2 fb_arc_set
+ * @details The supervisor program creates the shared memory
+ * where the generators will write and reads from said shared
+ * memory
+ */
+
+
 #include "utils.h"
 
 static int shmFd = -1;
@@ -11,6 +19,11 @@ static sem_t *semMutex = NULL;
 
 static const char* PROGRAM_NAME;
 
+/**
+ * Prints an error message to stdout.
+ * @param message the message you wish to print
+ * @param error the error message from the implementation of libraries
+ */
 static void ERROR_MSG(char *message, char *error) {
     if (error == NULL) {
         fprintf(stderr, "[%s]: %s\n", PROGRAM_NAME, message);
@@ -136,10 +149,12 @@ static void startup() {
     }
 
     // initialize buffer
-    buf -> terminate = 0;
-    buf -> readPos = 0;
-    buf -> writePos = 0;
-    buf -> numOfGenerators = 0;
+    buf->terminate = 0;
+    buf->readPos = 0;
+    buf->writePos = 0;
+    buf->numOfGenerators = 0;
+    buf->numberOfSolutions = 0;
+
 
     // create semaphores
     semUsed = sem_open(SEM_USED, O_CREAT | O_EXCL, 0600, 0);
@@ -181,10 +196,11 @@ static edge_list readBuffer() {
     return candidate;
 }
 
-static void solutions() {
+static void solutions(long maxSolutions) {
     edge_list solution = { .stored = SIZE_MAX };
-    while(buf -> terminate == 0) {
+    while(buf -> terminate == 0 && (buf->numberOfSolutions < maxSolutions || maxSolutions == 0)) {
         edge_list candidate = readBuffer();
+        buf->numberOfSolutions++;
         if (candidate.stored == 0) {
             printf("The graph is acyclic!\n");
             buf -> terminate = 1;
@@ -198,17 +214,56 @@ static void solutions() {
             printf("\n");
         }
     }
+    if (maxSolutions < buf->numberOfSolutions) {
+        printf("The graph might not be acyclic, best solution removes %zu edges.", solution.stored);
+    }
 }
 
 int main(int argc, char *argv[]) {
     PROGRAM_NAME = argv[0];
 
-    if (argc != 1){
-        USAGE();
+    long nValue = 0; // Default value for n
+    long wValue = 0; // Default value for w
+
+    int opt;
+    char *endptr;
+
+    while ((opt = getopt(argc, argv, "hn:w:")) != -1) {
+        switch (opt) {
+            case 'h':
+                USAGE();
+            case 'n':
+                errno = 0; // Reset errno before calling strtol
+                nValue = strtol(optarg, &endptr, 10);
+
+                // Check for conversion errors
+                if (errno != 0 || *endptr != '\0') {
+                    fprintf(stderr, "Invalid number for -n option\n");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 'w':
+                errno = 0; // Reset errno before calling strtol
+                wValue = strtol(optarg, &endptr, 10);
+
+                // Check for conversion errors
+                if (errno != 0 || *endptr != '\0') {
+                    fprintf(stderr, "Invalid number for -w option\n");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            default:
+                USAGE();
+        }
     }
 
     startup();
-    solutions();
+    if (wValue < 0)  {
+        ERROR_EXIT("value of -w should be greater than or equal to 0", strerror(errno));
+    }
+    sleep(wValue);
+
+    solutions(nValue);
 
     return EXIT_SUCCESS;
 }
