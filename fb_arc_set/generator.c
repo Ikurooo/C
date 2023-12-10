@@ -83,22 +83,22 @@ static void shutdown() {
 
     if (semUsed != NULL) {
         if (sem_close(semUsed) < 0) {
-            ERROR_MSG("Error closing sem_used", strerror(errno));
+            ERROR_MSG("Error closing used", strerror(errno));
         }
     }
 
     if (semFree != NULL) {
         if (sem_close(semFree) < 0) {
-            ERROR_MSG("Error closing sem_free", strerror(errno));
+            ERROR_MSG("Error closing free", strerror(errno));
         }
     }
 
     if (semMutex != NULL) {
         if (sem_post(semMutex) < 0) { // Resolve possible deadlocks
-            ERROR_MSG("Error while sem_post on sem_free", strerror(errno));
+            ERROR_MSG("Error while sem_post on free", strerror(errno));
         }
         if (sem_close(semMutex) < 0) {
-            ERROR_MSG("Error closing sem_mutex", strerror(errno));
+            ERROR_MSG("Error closing mutex", strerror(errno));
         }
     }
 }
@@ -116,7 +116,7 @@ static void writeWait() {
         if (errno == EINTR) {
             exit(EXIT_SUCCESS);
         }
-        ERROR_EXIT("Error while waiting for sem_free", strerror(errno));
+        ERROR_EXIT("Error while waiting for free", strerror(errno));
     }
     if (buf->terminate) {
         exit(EXIT_SUCCESS);
@@ -125,7 +125,7 @@ static void writeWait() {
         if (errno == EINTR) {
             exit(EXIT_SUCCESS);
         }
-        ERROR_EXIT("Error while waiting for sem_mutex", strerror(errno));
+        ERROR_EXIT("Error while waiting for mutex", strerror(errno));
     }
 }
 
@@ -137,10 +137,10 @@ static void writeWait() {
  */
 static void writeSignal() {
     if (sem_post(semMutex) < 0) {
-        ERROR_EXIT("Error while posting sem_mutex", strerror(errno));
+        ERROR_EXIT("Error while posting mutex", strerror(errno));
     }
     if (sem_post(semUsed) < 0) {
-        ERROR_EXIT("Error while posting sem_used", strerror(errno));
+        ERROR_EXIT("Error while posting used", strerror(errno));
     }
 }
 
@@ -389,7 +389,6 @@ static void parseInput(int argc, const char **argv, edge edges[]) {
         USAGE();
     }
 
-    // parse input
     for (size_t i = 1; i < argc; i++) {
         edges[i - 1] = parseEdge(argv[i]);
     }
@@ -404,7 +403,7 @@ static void parseInput(int argc, const char **argv, edge edges[]) {
 int main(int argc, const char** argv) {
     PROGRAM_NAME = argv[0];
 
-    // initialize resources
+    // initialise resources
     startup();
 
     // parse input
