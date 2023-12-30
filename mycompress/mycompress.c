@@ -155,4 +155,4 @@ int main(int argc, char *argv[]) {
     SINGLE_FILE:
     fclose(outfile);
     exit(EXIT_FAILURE);
-}
+}1

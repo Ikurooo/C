@@ -237,6 +237,24 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    char *leftLine = NULL;
+    char *rightLine = NULL;
+
+    size_t leftLineLen = 0;
+    size_t rightLineLen = 0;
+
+    getline(&leftLine, &leftLineLen, leftReadFile);
+    getline(&rightLine, &rightLineLen, rightReadFile);
+
+
+    for (ssize_t i = 0; i < stored; ++i) {
+
+
+    }
+
+
+    free(leftLine);
+    free(rightLine);
 
 
     close(leftReadPipe[0]);
