@@ -57,7 +57,7 @@ int parseUrl(const char *url) {
 //       client http://www.example.com/
 int main(int argc, char *argv[]) {
     int port = 80;
-    const char *path;
+    const char *path = NULL;
     bool portSet = false;
     bool fileSet = false;
     bool dirSet = false;
@@ -94,6 +94,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Handle the case where neither -o nor -d is provided
+    if (!fileSet && !dirSet) {
+        path = "stdout";
+    }
 
-    printf("%d", port);
 }
