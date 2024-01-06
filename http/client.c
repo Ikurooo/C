@@ -9,7 +9,14 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <zlib.h>
+#include <arpa/inet.h>
+#include <math.h>
 
+typedef struct {
+    char *file;
+    char *host;
+    int success;
+} URI;
 
 /**
  * @brief Print an error message to stderr and exit the process with EXIT_FAILURE.
@@ -51,16 +58,50 @@ int parsePort(const char *portStr) {
     return (int)port;  // Return the parsed port as an integer
 }
 
-int parseUrl(const char *url) {
-    if (url != NULL) {
-        if (strncasecmp(url, "http://", 7) != 0) {
-            return -1;
+URI parseUrl(const char *url) {
+
+    URI uri = {
+        .file = NULL,
+        .host = NULL,
+        .success = -1,
+    };
+
+    if (strncasecmp(url, "http://", 7) != 0) {
+        return uri;
+    }
+    if ((strlen(url) - 7) == 0) {
+        return uri;
+    }
+
+    char* s = strpbrk(url + 7, ";/?:@=&");
+    if (s == NULL) {
+        if (asprintf(&uri.file, "/index.html") == -1) {
+            return uri;
         }
-        if ((strlen(url) - 7) == 0) {
-            return -1;
+    } else if (s[0] != '/') {
+        if (asprintf(&uri.file, "/%s", s) == -1) {
+            return uri;
+        }
+    } else {
+        if (asprintf(&uri.file, "%s", s) == -1) {
+            return uri;
         }
     }
-    return 0;
+
+    if (asprintf(&uri.host, "%.*s", (int) (strlen(url) - 7 - strlen(uri.file)), (url + 7)) == -1) {
+        free(uri.file);
+        return uri;
+    }
+
+    if (strlen(uri.host) == 0) {
+        free(uri.host);
+        free(uri.file);
+        return uri;
+    }
+
+
+    uri.success = 0;
+    return uri;
 }
 
 int parseDir(char *dir) {
@@ -88,6 +129,7 @@ int main(int argc, char *argv[]) {
     int port = 80;
     char *path = NULL;
     char *url = NULL;
+    URI uri;
 
     bool portSet = false;
     bool fileSet = false;
@@ -129,14 +171,18 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    int length = (int) log10(port) + 1;
+    char strPort[length + 1];
+    snprintf(strPort, sizeof(strPort), "%d", port);
+
     // what?
     if (argc - optind != 1) {
         usage(argv[0]);
         fprintf(stderr, "URL is missing.\n");
     }
-    url = argv[optind];
 
-    if (parseUrl(url) == -1) {
+    url = argv[optind];
+    if ((uri = parseUrl(url)).success == -1) {
         fprintf(stderr, "An error occurred while parsing the URL.\n");
         exit(EXIT_FAILURE);
     }
@@ -159,4 +205,33 @@ int main(int argc, char *argv[]) {
     if (!fileSet && !dirSet) {
         path = "stdout";
     }
+    // add file open
+
+    // source: https://www.youtube.com/watch?v=MOrvead27B4
+    int clientSocket;
+    struct addrinfo hints;
+    struct addrinfo *results;
+    struct addrinfo *record;
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    int error;
+    if ((error = getaddrinfo(uri.host, strPort, &hints, &results)) != 0) {
+        free(uri.host);
+        free(uri.file);
+        return error;
+    }
+
+    for (record = results; record != NULL; record = record->ai_next) {
+        clientSocket = socket(record->ai_family, record->ai_socktype, record->ai_protocol);
+        if (clientSocket == -1) continue;
+        if (connect(clientSocket, record->ai_addr, record->ai_addrlen) != -1) break;
+        close(clientSocket);
+    }
+
+    return 0;
 }
+
