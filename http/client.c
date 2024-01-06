@@ -222,7 +222,7 @@ int main(int argc, char *argv[]) {
     if ((error = getaddrinfo(uri.host, strPort, &hints, &results)) != 0) {
         free(uri.host);
         free(uri.file);
-        return error;
+        return error; //exit failure?
     }
 
     for (record = results; record != NULL; record = record->ai_next) {
@@ -232,6 +232,21 @@ int main(int argc, char *argv[]) {
         close(clientSocket);
     }
 
+    freeaddrinfo(results);
+    if (record == NULL) {
+        free(uri.host);
+        free(uri.file);
+        exit(EXIT_FAILURE);
+    }
+
+    char request[strlen(url) + 1];
+    sprintf(request, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", uri.file, uri.host);
+    send(clientSocket, request, strlen(request), 0);
+
+
+
+    free(uri.host);
+    free(uri.file);
     return 0;
 }
 
