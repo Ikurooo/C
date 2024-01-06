@@ -1,8 +1,6 @@
-# Makefile for server and client
-
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic
-LDFLAGS =
+LDFLAGS = -lm
 
 SERVER_TARGET = server
 CLIENT_TARGET = client
