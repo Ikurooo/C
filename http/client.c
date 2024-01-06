@@ -44,11 +44,40 @@ int parsePort(const char *portStr) {
         return -1;
     }
 
+    if ((port < 0) || (port > 65535)) {
+        return -1;
+    }
+
     return (int)port;  // Return the parsed port as an integer
 }
 
 int parseUrl(const char *url) {
+    if (url != NULL) {
+        if (strncasecmp(url, "http://", 7) != 0) {
+            return -1;
+        }
+        if ((strlen(url) - 7) == 0) {
+            return -1;
+        }
+    }
+    return 0;
+}
 
+int parseDir(char *dir) {
+    if (strspn(dir, "/\\:*?\"<>|") != 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int parseFile(char *file) {
+    if (strspn(file, "/\\:*?\"<>|") != 0) {
+        return -1;
+    }
+    if (strlen(file) > 255) {
+        return -1;
+    }
+    return 0;
 }
 
 // SYNOPSIS
@@ -57,7 +86,9 @@ int parseUrl(const char *url) {
 //       client http://www.example.com/
 int main(int argc, char *argv[]) {
     int port = 80;
-    const char *path = NULL;
+    char *path = NULL;
+    char *url = NULL;
+
     bool portSet = false;
     bool fileSet = false;
     bool dirSet = false;
@@ -71,6 +102,10 @@ int main(int argc, char *argv[]) {
                 }
                 portSet = true;
                 port = parsePort(optarg);
+                if (port == -1) {
+                    fprintf(stderr, "An error occurred while parsing the port.\n");
+                    exit(EXIT_FAILURE);
+                }
                 break;
             case 'o':
                 if (dirSet || fileSet) {
@@ -94,9 +129,34 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // what?
+    if (argc - optind != 1) {
+        usage(argv[0]);
+        fprintf(stderr, "URL is missing.\n");
+    }
+    url = argv[optind];
+
+    if (parseUrl(url) == -1) {
+        fprintf(stderr, "An error occurred while parsing the URL.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (dirSet == true) {
+        if (parseDir(path) == -1) {
+            fprintf(stderr, "An error occurred while parsing the directory.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (fileSet == true) {
+        if (parseFile(path) == -1) {
+            fprintf(stderr, "An error occurred while parsing the file.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
     // Handle the case where neither -o nor -d is provided
     if (!fileSet && !dirSet) {
         path = "stdout";
     }
-
 }
