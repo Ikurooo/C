@@ -119,7 +119,7 @@ int parseResponseCode(char protocol[9], char status[4]) {
     }
 
     if (strncmp(status, "200", 3) != 0) {
-        return 2;
+        return 3;
     }
 
     return 0;
@@ -221,6 +221,7 @@ int main(int argc, char *argv[]) {
     if ((error = getaddrinfo(uri.host, strPort, &hints, &results)) != 0) {
         free(uri.host);
         free(uri.file);
+        fprintf(stderr, "Failed getting address information.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -235,7 +236,8 @@ int main(int argc, char *argv[]) {
     if (record == NULL) {
         free(uri.host);
         free(uri.file);
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "Failed connecting to server.\n");
+        exit(2);
     }
 
 
@@ -274,7 +276,7 @@ int main(int argc, char *argv[]) {
 
     int response = parseResponseCode(protocol, status);
     if (response != 0) {
-        fprintf(stderr, "ERROR request denied or timed out.\n");
+        fprintf(stderr, "%s %s\n", status, misc);
         exit(response);
     }
 
