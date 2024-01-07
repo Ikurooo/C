@@ -119,7 +119,7 @@ int parseResponseCode(char protocol[9], char status[4]) {
     }
 
     if (strncmp(status, "200", 3) != 0) {
-        return 3;
+        return 2;
     }
 
     return 0;
@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
     if ((error = getaddrinfo(uri.host, strPort, &hints, &results)) != 0) {
         free(uri.host);
         free(uri.file);
-        exit(error); //exit failure?
+        exit(EXIT_FAILURE);
     }
 
     for (record = results; record != NULL; record = record->ai_next) {
@@ -237,6 +237,7 @@ int main(int argc, char *argv[]) {
         free(uri.file);
         exit(EXIT_FAILURE);
     }
+
 
     char *request = NULL;
     asprintf(&request, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", uri.file, uri.host);
@@ -302,5 +303,6 @@ int main(int argc, char *argv[]) {
     fflush(socketFile);
     fclose(socketFile);
     close(clientSocket);
-    exit(EXIT_SUCCESS);
+    // printf("what\n");
+    exit(0);
 }
