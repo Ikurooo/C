@@ -13,21 +13,11 @@
 #include <math.h>
 #include <limits.h>
 
-
 typedef struct {
     char *file;
     char *host;
     int success;
 } URI;
-
-/**
- * @brief Print an error message to stderr and exit the process with EXIT_FAILURE.
- * @param process The name of the current process.
- */
-void error(char *message, const char *process) {
-    fprintf(stderr, "%s ERROR: %s\n", process, message);
-    exit(EXIT_FAILURE);
-}
 
 /**
  * @brief Print a usage message to stderr and exit the process with EXIT_FAILURE.
@@ -231,7 +221,7 @@ int main(int argc, char *argv[]) {
     if ((error = getaddrinfo(uri.host, strPort, &hints, &results)) != 0) {
         free(uri.host);
         free(uri.file);
-        return error; //exit failure?
+        exit(error); //exit failure?
     }
 
     for (record = results; record != NULL; record = record->ai_next) {
@@ -283,7 +273,7 @@ int main(int argc, char *argv[]) {
 
     int response = parseResponseCode(protocol, status);
     if (response != 0) {
-        fprintf(stderr, "Request denied or timed out.\n");
+        fprintf(stderr, "ERROR request denied or timed out.\n");
         exit(response);
     }
 
@@ -312,5 +302,5 @@ int main(int argc, char *argv[]) {
     fflush(socketFile);
     fclose(socketFile);
     close(clientSocket);
-    return EXIT_SUCCESS;
+    exit(EXIT_SUCCESS);
 }
