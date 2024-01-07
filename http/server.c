@@ -6,6 +6,7 @@
 
 
 int main(void) {
-
+    int arr[12];
+    0[arr];
     return 0;
 }
