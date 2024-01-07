@@ -18,3 +18,6 @@ $(CLIENT_TARGET): $(OBJ_CLIENT)
 
 clean:
 	rm -f $(CLIENT_TARGET) $(OBJ_CLIENT)
+
+release:
+	tar -cvzf HW3A.tgz client.c Makefile
