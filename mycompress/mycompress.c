@@ -75,6 +75,7 @@ int compress(FILE *in, FILE *out, uint16_t *read, uint16_t *written) {
         // End of line; Update statistics; Cleanup memory; Reset
         error = fprintf(out, "\n");
         if (error < 0) {
+            free(line);
             return -1;
         }
 

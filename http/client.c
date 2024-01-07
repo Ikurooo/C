@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -64,7 +65,7 @@ URI parseUrl(const char *url) {
     URI uri = {
         .file = NULL,
         .host = NULL,
-        .success = -1,
+        .success = -1
     };
 
     if (strncasecmp(url, "http://", 7) != 0) {
@@ -119,6 +120,18 @@ int parseFile(char *file) {
     if (strlen(file) > 255) {
         return -1;
     }
+    return 0;
+}
+
+int parseResponseCode(char protocol[9], char status[4]) {
+    if (strncmp(protocol, "HTTP/1.1", 8) != 0) {
+        return 2;
+    }
+
+    if (strncmp(status, "200", 3) != 0) {
+        return 3;
+    }
+
     return 0;
 }
 
@@ -183,7 +196,8 @@ int main(int argc, char *argv[]) {
     }
 
     url = argv[optind];
-    if ((uri = parseUrl(url)).success == -1) {
+    uri = parseUrl(url);
+    if (uri.success == -1) {
         fprintf(stderr, "An error occurred while parsing the URL.\n");
         exit(EXIT_FAILURE);
     }
@@ -201,12 +215,6 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
     }
-
-    // Handle the case where neither -o nor -d is provided
-    if (!fileSet && !dirSet) {
-        path = "stdout";
-    }
-    // add file open
 
     // source: https://www.youtube.com/watch?v=MOrvead27B4
     int clientSocket;
@@ -240,14 +248,69 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    char request[strlen(url) + 1];
-    sprintf(request, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", uri.file, uri.host);
+    char *request = NULL;
+    asprintf(&request, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", uri.file, uri.host);
     send(clientSocket, request, strlen(request), 0);
-
-
-
+    free(request);
     free(uri.host);
     free(uri.file);
-    return 0;
-}
 
+    FILE *socketFile = fdopen(clientSocket, "r+");
+    if (socketFile == NULL) {
+        close(clientSocket);
+        fprintf(stderr, "ERROR opening client socket as file.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    char *line = NULL;
+    size_t linelen = 0;
+    // case where first line is null
+    if (getline(&line, &linelen, socketFile) == -1) {
+        close(clientSocket);
+        fprintf(stderr, "ERROR parsing first line of client socket as file.\n");
+        exit(2);
+    }
+
+    char protocol[9];
+    char status[4];
+    char misc[strlen(line)];
+
+    if (sscanf(line, "%8s %3s %[^\\r\\n]", protocol, status, misc) != 3) {
+        close(clientSocket);
+        fprintf(stderr, "ERROR parsing first line of client socket as file.\n");
+        exit(2);
+    }
+
+    int response = parseResponseCode(protocol, status);
+    if (response != 0) {
+        fprintf(stderr, "Request denied or timed out.\n");
+        exit(response);
+    }
+
+    FILE *outfile = path == NULL ? stdout : fopen(path, "w");
+    if (outfile == NULL)  {
+        free(line);
+        fclose(socketFile);
+        close(clientSocket);
+        fprintf(stderr, "ERROR opening output file\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // skip header
+    while (getline(&line, &linelen, socketFile) != -1) {
+        // printf("%s", line);
+        if (strcmp(line, "\r\n") == 0) {
+            break;
+        }
+    }
+
+    while (getline(&line, &linelen, socketFile) != -1) {
+        fprintf(outfile, "%s", line);
+    }
+
+    free(line);
+    fflush(socketFile);
+    fclose(socketFile);
+    close(clientSocket);
+    return EXIT_SUCCESS;
+}
