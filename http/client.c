@@ -6,12 +6,12 @@
 #include <assert.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <math.h>
 #include <limits.h>
+#include <sys/stat.h>
 
 typedef struct {
     char *file;
@@ -97,9 +97,16 @@ URI parseUrl(const char *url) {
 }
 
 int parseDir(char *dir) {
-    if (strspn(dir, "/\\:*?\"<>|") != 0) {
+    if (strspn(dir, "/\\:*?\"<>|.") != 0) {
         return -1;
     }
+
+    struct stat st = {0};
+
+    if (stat(dir, &st) == -1) {
+        mkdir(dir, 0777);
+    }
+
     return 0;
 }
 
@@ -118,7 +125,12 @@ int parseResponseCode(char protocol[9], char status[4]) {
         return 2;
     }
 
-    if (strncmp(status, "200", 3) != 0) {
+    // Check if status contains only numeric characters
+    if (strspn(status, "0123456789") != strlen(status)) {
+        return 2;
+    }
+
+    if (strncmp(status, "200", 8) != 0) {
         return 3;
     }
 
@@ -221,7 +233,7 @@ int main(int argc, char *argv[]) {
     if ((error = getaddrinfo(uri.host, strPort, &hints, &results)) != 0) {
         free(uri.host);
         free(uri.file);
-        fprintf(stderr, "Failed getting address information.\n");
+        fprintf(stderr, "Failed getting address information. [%d]\n", error);
         exit(EXIT_FAILURE);
     }
 
@@ -230,6 +242,7 @@ int main(int argc, char *argv[]) {
         if (clientSocket == -1) continue;
         if (connect(clientSocket, record->ai_addr, record->ai_addrlen) != -1) break;
         close(clientSocket);
+        exit(1);  // maybe
     }
 
     freeaddrinfo(results);
@@ -237,9 +250,8 @@ int main(int argc, char *argv[]) {
         free(uri.host);
         free(uri.file);
         fprintf(stderr, "Failed connecting to server.\n");
-        exit(2);
+        exit(1);
     }
-
 
     char *request = NULL;
     asprintf(&request, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", uri.file, uri.host);
@@ -268,7 +280,7 @@ int main(int argc, char *argv[]) {
     char status[4];
     char misc[strlen(line)];
 
-    if (sscanf(line, "%8s %3s %[^\\r\\n]", protocol, status, misc) != 3) {
+    if (sscanf(line, "%8s %3[^\r\n] %[^\r\n]", protocol, status, misc) != 3) {
         close(clientSocket);
         fprintf(stderr, "ERROR parsing first line of client socket as file.\n");
         exit(2);
@@ -280,6 +292,7 @@ int main(int argc, char *argv[]) {
         exit(response);
     }
 
+    // Add the dings bums default index.html thingy to directory end or so idk
     FILE *outfile = path == NULL ? stdout : fopen(path, "w");
     if (outfile == NULL)  {
         free(line);
@@ -291,7 +304,6 @@ int main(int argc, char *argv[]) {
 
     // skip header
     while (getline(&line, &linelen, socketFile) != -1) {
-        // printf("%s", line);
         if (strcmp(line, "\r\n") == 0) {
             break;
         }
@@ -305,6 +317,5 @@ int main(int argc, char *argv[]) {
     fflush(socketFile);
     fclose(socketFile);
     close(clientSocket);
-    // printf("what\n");
     exit(0);
 }
