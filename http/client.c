@@ -1,3 +1,10 @@
+/**
+ * @file client.c
+ * @author Ivan Cankov 12219400 <e12219400@student.tuwien.ac.at>
+ * @date 07.01.2024
+ * @brief A simple HTTP client in C
+ **/
+
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,15 +35,19 @@ void usage(const char *process) {
     exit(EXIT_FAILURE);
 }
 
+/**
+ * @brief Parses the port from a string into an integer.
+ * @param portStr the port you would like to convert
+ * @return 0 if successful -1 otherwise
+ */
 int parsePort(const char *portStr) {
     char *endptr;
-    errno = 0;  // Set errno to 0 before the call to strtol to detect errors properly
+    errno = 0;
 
     long port = strtol(portStr, &endptr, 10);
 
-    // Check for errors during conversion
     if ((errno == ERANGE && (port == LONG_MAX || port == LONG_MIN)) || (errno != 0 && port == 0)) {
-        return -1;  // Error during conversion
+        return -1;
     }
 
     if (endptr == portStr || *endptr != '\0') {
@@ -47,9 +58,14 @@ int parsePort(const char *portStr) {
         return -1;
     }
 
-    return (int)port;  // Return the parsed port as an integer
+    return (int)port;
 }
 
+/**
+ * @brief Parses the the provided URL into a URI struct.
+ * @param url the URL you would like to parse
+ * @return the uri itself, if the conversion was successful the uri.success value will be 0
+ */
 URI parseUrl(const char *url) {
 
     URI uri = {
@@ -96,7 +112,12 @@ URI parseUrl(const char *url) {
     return uri;
 }
 
-int parseDir(char *dir) {
+/**
+ * @brief Validates the provided directory and if it is valid and does not yet exist it gets created.
+ * @param dir the directory you would like to validate
+ * @return 0 if successful -1 otherwise
+ */
+int validateDir(char *dir) {
     if (strspn(dir, "/\\:*?\"<>|.") != 0) {
         return -1;
     }
@@ -110,7 +131,12 @@ int parseDir(char *dir) {
     return 0;
 }
 
-int parseFile(char *file) {
+/**
+ * @brief Validates the provided file.
+ * @param file the file you would like to validate
+ * @return 0 if successful -1 otherwise
+ */
+int validateFile(char *file) {
     if (strspn(file, "/\\:*?\"<>|") != 0) {
         return -1;
     }
@@ -120,7 +146,13 @@ int parseFile(char *file) {
     return 0;
 }
 
-int parseResponseCode(char protocol[9], char status[4]) {
+/**
+ * @brief 
+ * @param protocol
+ * @param status
+ * @return
+ */
+int validateResponseCode(char protocol[9], char status[4]) {
     if (strncmp(protocol, "HTTP/1.1", 8) != 0) {
         return 2;
     }
@@ -205,14 +237,14 @@ int main(int argc, char *argv[]) {
     }
 
     if (dirSet == true) {
-        if (parseDir(path) == -1) {
+        if (validateDir(path) == -1) {
             fprintf(stderr, "An error occurred while parsing the directory.\n");
             exit(EXIT_FAILURE);
         }
     }
 
     if (fileSet == true) {
-        if (parseFile(path) == -1) {
+        if (validateFile(path) == -1) {
             fprintf(stderr, "An error occurred while parsing the file.\n");
             exit(EXIT_FAILURE);
         }
@@ -286,7 +318,7 @@ int main(int argc, char *argv[]) {
         exit(2);
     }
 
-    int response = parseResponseCode(protocol, status);
+    int response = validateResponseCode(protocol, status);
     if (response != 0) {
         fprintf(stderr, "%s %s\n", status, misc);
         exit(response);
