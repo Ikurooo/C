@@ -46,15 +46,8 @@ int parsePort(const char *portStr) {
 
     long port = strtol(portStr, &endptr, 10);
 
-    if ((errno == ERANGE && (port == LONG_MAX || port == LONG_MIN)) || (errno != 0 && port == 0)) {
-        return -1;
-    }
-
-    if (endptr == portStr || *endptr != '\0') {
-        return -1;
-    }
-
-    if ((port < 0) || (port > 65535)) {
+    if ((errno == ERANGE && (port == LONG_MAX || port == LONG_MIN)) || (errno != 0 && port == 0) ||
+        endptr == portStr || *endptr != '\0' || port < 0 || port > 65535) {
         return -1;
     }
 
@@ -74,10 +67,7 @@ URI parseUrl(const char *url) {
         .success = -1
     };
 
-    if (strncasecmp(url, "http://", 7) != 0) {
-        return uri;
-    }
-    if ((strlen(url) - 7) == 0) {
+    if (strncasecmp(url, "http://", 7) != 0 || (strlen(url) - 7) == 0) {
         return uri;
     }
 
@@ -106,7 +96,6 @@ URI parseUrl(const char *url) {
         free(uri.file);
         return uri;
     }
-
 
     uri.success = 0;
     return uri;
@@ -148,13 +137,7 @@ int validateDir(char **dir, URI uri) {
  * @return 0 if successful -1 otherwise
  */
 int validateFile(char *file) {
-    if (strspn(file, "/\\:*?\"<>|") != 0) {
-        return -1;
-    }
-    if (strlen(file) > 255) {
-        return -1;
-    }
-    return 0;
+    return (strspn(file, "/\\:*?\"<>|") != 0 || strlen(file) > 255) ? -1 : 0;
 }
 
 /**
@@ -333,38 +316,25 @@ int main(int argc, char *argv[]) {
         exit(response);
     }
 
-
-    if (fileSet == true) {
-        if (validateFile(path) == -1) {
-            free(uri.file);
-            fprintf(stderr, "An error occurred while parsing the file.\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    if (dirSet == true) {
-        if (validateDir(&path, uri) == -1) {
-            free(uri.file);
-            fprintf(stderr, "An error occurred while parsing the directory.\n");
-            exit(EXIT_FAILURE);
-        }
+    if ((fileSet && validateFile(path) == -1) || (dirSet && validateDir(&path, uri) == -1)) {
+        free(uri.file);
+        fprintf(stderr, "An error occurred while parsing.\n");
+        exit(EXIT_FAILURE);
     }
 
     FILE *outfile = (dirSet == false && fileSet == false) ? stdout : fopen(path, "w");
     free(uri.file);
+
+    if (dirSet == true) {
+        free(path);
+    }
+
     if (outfile == NULL)  {
-        if (dirSet == true) {
-            free(path);
-        }
         free(line);
         fclose(socketFile);
         close(clientSocket);
         fprintf(stderr, "ERROR opening output file\n");
         exit(EXIT_FAILURE);
-    }
-
-    if (dirSet == true) {
-        free(path);
     }
 
     // skip header
@@ -382,5 +352,5 @@ int main(int argc, char *argv[]) {
     fflush(socketFile);
     fclose(socketFile);
     close(clientSocket);
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
