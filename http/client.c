@@ -265,7 +265,6 @@ int main(int argc, char *argv[]) {
     free(uri.host);
 
     FILE *socketFile = fdopen(clientSocket, "r+");
-
     if (socketFile == NULL) {
         free(uri.file);
         close(clientSocket);
