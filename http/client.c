@@ -114,19 +114,30 @@ URI parseUrl(const char *url) {
 
 /**
  * @brief Validates the provided directory and if it is valid and does not yet exist it gets created.
+ * @implnote This function mutates the original string if it is deemed a valid directory!
  * @param dir the directory you would like to validate
  * @return 0 if successful -1 otherwise
  */
-int validateDir(char *dir) {
-    if (strspn(dir, "/\\:*?\"<>|.") != 0) {
+int validateDir(char **dir, URI uri) {
+    if (strspn(*dir, "/\\:*?\"<>|.") != 0) {
         return -1;
     }
 
     struct stat st = {0};
 
-    if (stat(dir, &st) == -1) {
-        mkdir(dir, 0777);
+    if (stat(*dir, &st) == -1) {
+        mkdir(*dir, 0777);
     }
+
+    char *tempDir = NULL;
+
+    if (strncmp(uri.file, "/", 1) == 0) {
+        asprintf(&tempDir, "%s/index.html", *dir);
+    } else {
+        asprintf(&tempDir, "%s%s", *dir, uri.file);
+    }
+
+    *dir = tempDir;
 
     return 0;
 }
@@ -237,7 +248,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (dirSet == true) {
-        if (validateDir(path) == -1) {
+        if (validateDir(&path, uri) == -1) {
             fprintf(stderr, "An error occurred while parsing the directory.\n");
             exit(EXIT_FAILURE);
         }
@@ -326,6 +337,7 @@ int main(int argc, char *argv[]) {
 
     // Add the dings bums default index.html thingy to directory end or so idk
     FILE *outfile = path == NULL ? stdout : fopen(path, "w");
+    printf("%s\n", path);
     if (outfile == NULL)  {
         free(line);
         fclose(socketFile);
