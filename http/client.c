@@ -184,6 +184,13 @@ int validateResponseCode(char protocol[9], char status[4]) {
 //       client [-p PORT] [ -o FILE | -d DIR ] URL
 // EXAMPLE
 //       client http://www.example.com/
+
+/**
+ * @brief Entrypoint of the programme. (Sets up and runs client)
+ * @param argc
+ * @param argv
+ * @return
+ */
 int main(int argc, char *argv[]) {
     int port = 80;
     char *path = NULL;
@@ -247,20 +254,6 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    if (dirSet == true) {
-        if (validateDir(&path, uri) == -1) {
-            fprintf(stderr, "An error occurred while parsing the directory.\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    if (fileSet == true) {
-        if (validateFile(path) == -1) {
-            fprintf(stderr, "An error occurred while parsing the file.\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-
     // source: https://www.youtube.com/watch?v=MOrvead27B4
     int clientSocket;
     struct addrinfo hints;
@@ -303,7 +296,26 @@ int main(int argc, char *argv[]) {
     free(uri.host);
     free(uri.file);
 
+    if (fileSet == true) {
+        if (validateFile(path) == -1) {
+            fprintf(stderr, "An error occurred while parsing the file.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (dirSet == true) {
+        if (validateDir(&path, uri) == -1) {
+            fprintf(stderr, "An error occurred while parsing the directory.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
     FILE *socketFile = fdopen(clientSocket, "r+");
+
+    if (dirSet == true) {
+        free(path);
+    }
+
     if (socketFile == NULL) {
         close(clientSocket);
         fprintf(stderr, "ERROR opening client socket as file.\n");
@@ -335,8 +347,7 @@ int main(int argc, char *argv[]) {
         exit(response);
     }
 
-    // Add the dings bums default index.html thingy to directory end or so idk
-    FILE *outfile = path == NULL ? stdout : fopen(path, "w");
+    FILE *outfile = (!dirSet && !fileSet) ? stdout : fopen(path, "w");
     printf("%s\n", path);
     if (outfile == NULL)  {
         free(line);
