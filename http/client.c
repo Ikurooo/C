@@ -119,7 +119,7 @@ URI parseUrl(const char *url) {
  * @return 0 if successful -1 otherwise
  */
 int validateDir(char **dir, URI uri) {
-    if (strcspn(*dir, "/\\:*?\"<>|.") != 0) {
+    if (strpbrk(*dir, "/\\:*?\"<>|.") != NULL) {
         return -1;
     }
 
@@ -137,7 +137,6 @@ int validateDir(char **dir, URI uri) {
         asprintf(&tempDir, "%s%s", *dir, uri.file);
     }
 
-    printf("%s\n", tempDir);
     *dir = tempDir;
 
     return 0;
