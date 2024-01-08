@@ -41,9 +41,8 @@ void usage(const char *process) {
  * @return 0 if successful -1 otherwise
  */
 int parsePort(const char *portStr) {
-    char *endptr;
     errno = 0;
-
+    char *endptr;
     long port = strtol(portStr, &endptr, 10);
 
     if ((errno == ERANGE && (port == LONG_MAX || port == LONG_MIN)) || (errno != 0 && port == 0) ||
@@ -61,11 +60,7 @@ int parsePort(const char *portStr) {
  */
 URI parseUrl(const char *url) {
 
-    URI uri = {
-        .file = NULL,
-        .host = NULL,
-        .success = -1
-    };
+    URI uri = { .file = NULL, .host = NULL, .success = -1 };
 
     if (strncasecmp(url, "http://", 7) != 0 || (strlen(url) - 7) == 0) {
         return uri;
@@ -141,26 +136,17 @@ int validateFile(char *file) {
 }
 
 /**
- * @brief 
+ * @brief Validates the response code.
  * @param protocol
  * @param status
  * @return
  */
 int validateResponseCode(char protocol[9], char status[4]) {
-    if (strncmp(protocol, "HTTP/1.1", 8) != 0) {
+    if (strncmp(protocol, "HTTP/1.1", 8) != 0 || strspn(status, "0123456789") != strlen(status)) {
         return 2;
     }
 
-    // Check if status contains only numeric characters
-    if (strspn(status, "0123456789") != strlen(status)) {
-        return 2;
-    }
-
-    if (strncmp(status, "200", 3) != 0) {
-        return 3;
-    }
-
-    return 0;
+    return (strncmp(status, "200", 3) != 0) ? 3 : 0;
 }
 
 // SYNOPSIS
@@ -221,15 +207,14 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    int length = (int) log10(port) + 1;
-    char strPort[length + 1];
-    snprintf(strPort, sizeof(strPort), "%d", port);
-
-    // what?
     if (argc - optind != 1) {
         usage(argv[0]);
         fprintf(stderr, "URL is missing.\n");
     }
+
+    int length = (int) log10(port) + 1;
+    char strPort[length + 1];
+    snprintf(strPort, sizeof(strPort), "%d", port);
 
     url = argv[optind];
     uri = parseUrl(url);
