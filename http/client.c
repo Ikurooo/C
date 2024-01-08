@@ -119,7 +119,7 @@ URI parseUrl(const char *url) {
  * @return 0 if successful -1 otherwise
  */
 int validateDir(char **dir, URI uri) {
-    if (strspn(*dir, "/\\:*?\"<>|.") != 0) {
+    if (strcspn(*dir, "/\\:*?\"<>|.") != 0) {
         return -1;
     }
 
@@ -174,7 +174,7 @@ int validateResponseCode(char protocol[9], char status[4]) {
         return 2;
     }
 
-    if (strncmp(status, "200", 8) != 0) {
+    if (strncmp(status, "200", 3) != 0) {
         return 3;
     }
 
@@ -188,6 +188,7 @@ int validateResponseCode(char protocol[9], char status[4]) {
 
 /**
  * @brief Entrypoint of the programme. (Sets up and runs client)
+ * @details the program uses the HTTP protocol and can accept files that are in plain text.
  * @param argc
  * @param argv
  * @return
@@ -343,7 +344,6 @@ int main(int argc, char *argv[]) {
     }
 
     if (dirSet == true) {
-        printf("%s\n", path);
         if (validateDir(&path, uri) == -1) {
             free(uri.file);
             fprintf(stderr, "An error occurred while parsing the directory.\n");
