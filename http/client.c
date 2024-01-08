@@ -119,7 +119,7 @@ URI parseUrl(const char *url) {
  * @return 0 if successful -1 otherwise
  */
 int validateDir(char **dir, URI uri) {
-    if (strpbrk(*dir, "/\\:*?\"<>|.") != NULL) {
+    if (strpbrk(*dir, "\\:*?\"<>|.") != NULL) {
         return -1;
     }
 
