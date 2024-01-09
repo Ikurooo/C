@@ -110,6 +110,11 @@ int main(int argc, char *argv[]) {
     }
     int port = parsePort(portStr);
 
+    if (port == -1) {
+        fprintf(stderr, "Invalid port number.\n");
+        exit(EXIT_FAILURE);
+    }
+
     if (validateDir(&root) != 0) {
         fprintf(stderr, "Invalid doc-root directory name.\n");
         exit(EXIT_FAILURE);
