@@ -97,7 +97,9 @@ int validateDir(char **dir, URI uri) {
     struct stat st = {0};
 
     if (stat(*dir, &st) == -1) {
-        mkdir(*dir, 0777);
+        if (mkdir(*dir, 0777) == -1) {
+            return -1;
+        }
     }
 
     char *tempDir = NULL;
