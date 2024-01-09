@@ -151,28 +151,22 @@ int validateResponseCode(char protocol[9], char status[4]) {
  * @return
  */
 int main(int argc, char *argv[]) {
-    int port = 80;
+    char *port = NULL;
     char *path = NULL;
     char *url = NULL;
     URI uri;
 
-    bool portSet = false;
-    bool fileSet = false;
     bool dirSet = false;
+    bool fileSet = false;
 
     int option;
     while ((option = getopt(argc, argv, "p:o:d:")) != -1) {
         switch (option) {
             case 'p':
-                if (portSet) {
+                if (port != NULL) {
                     usage(argv[0]);
                 }
-                portSet = true;
-                port = parsePort(optarg);
-                if (port == -1) {
-                    fprintf(stderr, "An error occurred while parsing the port.\n");
-                    exit(EXIT_FAILURE);
-                }
+                port = optarg;
                 break;
             case 'o':
                 if (dirSet || fileSet) {
@@ -201,9 +195,10 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "URL is missing.\n");
     }
 
-    int length = (int) log10(port) + 1;
-    char strPort[length + 1];
-    snprintf(strPort, sizeof(strPort), "%d", port);
+    if (parsePort(port) == -1) {
+        fprintf(stderr, "Invalid port number.\n");
+        exit(EXIT_FAILURE);
+    }
 
     url = argv[optind];
     uri = parseUrl(url);
@@ -224,7 +219,7 @@ int main(int argc, char *argv[]) {
     hints.ai_protocol = IPPROTO_TCP;
 
     int error;
-    if ((error = getaddrinfo(uri.host, strPort, &hints, &results)) != 0) {
+    if ((error = getaddrinfo(uri.host, port, &hints, &results)) != 0) {
         free(uri.host);
         free(uri.file);
         fprintf(stderr, "Failed getting address information. [%d]\n", error);
