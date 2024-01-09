@@ -1,0 +1,14 @@
+#define _GNU_SOURCE
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdbool.h>
+#include <assert.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <math.h>
+#include <limits.h>
+#include <sys/stat.h>
