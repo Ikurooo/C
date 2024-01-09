@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    const size_t bufferSize = 1024;
+    const size_t bufferSize = 1024; // TODO: think about this
     const int backlog = 1;
     int serverSocket;
 
