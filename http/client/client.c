@@ -192,7 +192,6 @@ int main(int argc, char *argv[]) {
 
     if (argc - optind != 1) {
         usage(argv[0]);
-        exit(EXIT_FAILURE);
     }
 
     if (parsePort(port) == -1) {
