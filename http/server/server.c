@@ -100,13 +100,23 @@ int main(int argc, char *argv[]) {
         index = "index.html";
     }
 
+    if (validateDir(&root) != 0) {
+        fprintf(stderr, "Invalid doc-root directory name.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (validateFile(index) != 0) {
+        fprintf(stderr, "Invalid index file name.\n");
+        exit(EXIT_FAILURE);
+    }
+
     if (argc - optind != 1) {
         usage(argv[0]);
     }
     root = argv[optind];
 
     if (portStr == NULL) {
-        portStr = "8080";
+        portStr = "80";
     }
     int port = parsePort(portStr);
 
@@ -115,13 +125,43 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    if (validateDir(&root) != 0) {
-        fprintf(stderr, "Invalid doc-root directory name.\n");
+    const size_t bufferSize = 1024;
+    const int backlog = 1;
+    int serverSocket;
+
+    struct addrinfo hints;
+    struct addrinfo *results;
+    struct addrinfo *record;
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    if (getaddrinfo(NULL, portStr, &hints, &results) != 0) {
+        fprintf(stderr, "Failed to translate server socket.\n");
         exit(EXIT_FAILURE);
     }
 
-    if (validateFile(index) != 0) {
-        fprintf(stderr, "Invalid index file name.\n");
+    for (record = results; record != NULL; record = record->ai_next) {
+        serverSocket = socket(record->ai_family, record->ai_socktype, record->ai_protocol);
+        if (serverSocket == -1) continue;
+        int enable = 1;
+        setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+        if (bind(serverSocket, record->ai_addr, record->ai_addrlen) == 0) break;
+        close(serverSocket);
+    }
+
+    if (record == NULL) {
+        fprintf(stderr, "Failed to create or connect client socket.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    freeaddrinfo(results);
+
+    if (listen(serverSocket, backlog) == -1) {
+        fprintf(stderr, "Failed to start server socket listen.\n");
         exit(EXIT_FAILURE);
     }
 
