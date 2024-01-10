@@ -2,14 +2,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <stdbool.h>
 #include <assert.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <math.h>
 #include <limits.h>
 #include <sys/stat.h>
 
@@ -62,6 +60,30 @@ int validateDir(char **dir) {
 
     struct stat st = {0};
     return stat(*dir, &st);
+}
+
+// FREE THE CHILDREN FROM THE CURSE OF A MEMORY LEAK
+int validateRequest(char *request, char **path, char *index) {
+    char *type = NULL;
+    char *protocol = NULL;
+    int response = 200;
+
+                                    // yea nah this is a proper war crime
+    if (sscanf(request, "%ms %ms %ms", &type, path, &protocol) != 3) {
+        response = 400;
+    }
+
+    if (strncmp(protocol, "HTTP/1.1", 8) != 0 ) {
+        response = 400;
+    }
+
+    if (strncmp(type, "GET", 3) != 0) {
+        response = 501;
+    }
+
+    free(type);
+    free(protocol);
+    return response;
 }
 
 // SYNOPSIS
@@ -163,6 +185,45 @@ int main(int argc, char *argv[]) {
     if (listen(serverSocket, backlog) == -1) {
         fprintf(stderr, "Failed to start server socket listen.\n");
         exit(EXIT_FAILURE);
+    }
+
+    while (1) {
+        int clientSocket;
+        struct sockaddr clientAddress;
+        socklen_t clientAddressLength = sizeof(clientAddress);
+
+        if ((clientSocket = accept(serverSocket, &clientAddress, &clientAddressLength)) < 0) {
+            fprintf(stderr, "Failed to accept client socket.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        char *buffer[bufferSize];
+
+        if ((recv(clientSocket, buffer, sizeof(buffer), 0)) == -1) {
+            fprintf(stderr, "Failed to receive message.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        // For now, we only check the first line.
+        char **path;
+        switch (validateRequest(*buffer, path, index)) {
+            case 200:
+                printf("hello\n");
+                break;
+            case 400:
+                exit(EXIT_FAILURE);
+                break;
+            case 404:
+                exit(EXIT_FAILURE);
+                break;
+            case 501:
+                exit(EXIT_FAILURE);
+                break;
+            default:
+                break;
+        }
+
+        free(path);
     }
 
     exit(EXIT_SUCCESS);
