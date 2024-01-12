@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <limits.h>
 #include <sys/stat.h>
+#include <stdbool.h>
 
 /**
  * @brief Print a usage message to stderr and exit the process with EXIT_FAILURE.
@@ -68,7 +69,6 @@ int validateRequest(char *request, char **path, char *index) {
     char *protocol = NULL;
     int response = 200;
 
-                                    // yea nah this is a proper war crime
     if (sscanf(request, "%ms %ms %ms", &type, path, &protocol) != 3) {
         response = 400;
     }
@@ -81,6 +81,24 @@ int validateRequest(char *request, char **path, char *index) {
         response = 501;
     }
 
+    char *fullPath = malloc(strlen(*path) + strlen(index) + 1);
+
+    if (fullPath == NULL) {
+        free(fullPath);
+        free(type);
+        free(protocol);
+        free(path);
+        return -1;
+    }
+
+    strcpy(fullPath, *path);
+    strcat(fullPath, index);
+
+    if (access(*path, F_OK) != -1) {
+        response = 404;
+    }
+
+    free(fullPath);
     free(type);
     free(protocol);
     return response;
@@ -187,7 +205,8 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    while (1) {
+    bool quit = false;
+    while (quit == false) {
         int clientSocket;
         struct sockaddr clientAddress;
         socklen_t clientAddressLength = sizeof(clientAddress);
@@ -207,23 +226,24 @@ int main(int argc, char *argv[]) {
         // For now, we only check the first line.
         char **path;
         switch (validateRequest(*buffer, path, index)) {
+            case -1:
+                printf("internal server error.\n");
+                break;
             case 200:
                 printf("hello\n");
                 break;
             case 400:
-                exit(EXIT_FAILURE);
+                free(path);;
                 break;
             case 404:
-                exit(EXIT_FAILURE);
+                free(path);
                 break;
             case 501:
-                exit(EXIT_FAILURE);
+                free(path);;
                 break;
             default:
                 break;
         }
-
-        free(path);
     }
 
     exit(EXIT_SUCCESS);
