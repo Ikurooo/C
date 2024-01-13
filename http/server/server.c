@@ -77,7 +77,6 @@ int getFullPath(const char *path, const char *root, char *fullPath, size_t maxLe
     return (access(fullPath, F_OK) == -1) ? -1 : 0;
 }
 
-// FREE THE CHILDREN FROM THE CURSE OF A MEMORY LEAK
 int validateRequest(char *request, char **path, char *index, char *root) {
     char *type = strtok(request, " ");
     *path = strtok(NULL, " ");
@@ -105,6 +104,42 @@ int validateRequest(char *request, char **path, char *index, char *root) {
 
     return 200;
 }
+
+int writeResponse(int code, const char *response, int clientSocket, char *path) {
+    FILE *writeFile = fdopen(clientSocket, "r+");
+    if(writeFile == NULL){
+        return -1;
+    }
+
+    if(fprintf(writeFile, "HTTP/1.1 %d %s.\r\nConnection: close\r\n\r\n", code, response) == -1){
+        fprintf(stderr, "Error writing to client.\n");
+        return -1;
+    }
+
+    if (code != 200) {
+        fflush(writeFile);
+        return 0;
+    }
+
+    FILE *readFile = fopen(path, "r");
+    if (readFile == NULL) {
+        fprintf(stderr, "Error opening file.\n");
+        return -1;
+    }
+
+    int bufferSize = 1024;
+    size_t read = 0;
+    char buffer[bufferSize];
+
+    while((read = fread(buffer, sizeof(char), bufferSize, readFile)) != 0){
+        fwrite(buffer, sizeof(char), read, writeFile);
+    }
+
+    fflush(writeFile);
+    fclose(writeFile);
+    return 0;
+}
+
 
 // SYNOPSIS
 //     server [-p PORT] [-i INDEX] DOC_ROOT
@@ -220,7 +255,7 @@ int main(int argc, char *argv[]) {
 
         if ((clientSocket = accept(serverSocket, &clientAddress, &clientAddressLength)) < 0) {
             fprintf(stderr, "Failed to accept client socket.\n");
-            exit(EXIT_FAILURE);
+            continue;
         }
 
         char buffer[bufferSize];
@@ -228,14 +263,7 @@ int main(int argc, char *argv[]) {
 
         if ((recv(clientSocket, buffer, sizeof(buffer), 0)) == -1) {
             fprintf(stderr, "Failed to receive message.\n");
-            exit(EXIT_FAILURE);
-        }
-
-        FILE *writeFile = fdopen(clientSocket, "r+");
-        if(writeFile == NULL){
-            close(serverSocket);
-            fprintf(stderr, "Error fdopen failed\n");
-            exit(EXIT_FAILURE);
+            continue;
         }
 
         printf("%s\n", buffer);
@@ -243,42 +271,21 @@ int main(int argc, char *argv[]) {
         char **path = malloc(sizeof(buffer));
         switch (validateRequest(buffer, path, index, root)) {
             case 400:
-                if(fprintf(writeFile, "HTTP/1.1 400 Bad Request.\r\nConnection: close\r\n\r\n") == -1){
-                    fprintf(stderr, "Error writing to client.\n");
-                }
-                fflush(writeFile);
+                writeResponse(400, "Bad Request", clientSocket, *path);
                 break;
             case 404:
-                if(fprintf(writeFile, "HTTP/1.1 404 Not Found.\r\nConnection: close\r\n\r\n") == -1){
-                    fprintf(stderr, "Error writing to client.\n");
-                }
-                fflush(writeFile);
+                writeResponse(404, "Not Found", clientSocket, *path);
                 break;
             case 501:
-                if(fprintf(writeFile, "HTTP/1.1 501 Not Implemented.\r\nConnection: close\r\n\r\n") == -1){
-                    fprintf(stderr, "Error writing to client.\n");
-                }
-                fflush(writeFile);
+                writeResponse(501, "Not Implemented", clientSocket, *path);
                 break;
             case 200:
-                if(fprintf(writeFile, "HTTP/1.1 200 OK.\r\nConnection: close\r\n\r\n") == -1){
-                    fprintf(stderr, "Error writing to client.\n");
-                }
-                FILE *readFile = fopen(*path, "r");
-                if (readFile == NULL) {
-                    fprintf(stderr, "Error opening file.\n");
-                }
-                size_t read = 0;
-                while((read = fread(buffer, sizeof(char), bufferSize, readFile)) != 0){
-                    fwrite(buffer, sizeof(char), read, writeFile);
-                }
-                fflush(writeFile);
+                writeResponse(200, "OK", clientSocket, *path);
                 break;
             default:
                 assert(0);
         }
 
-        fclose(writeFile);
         free(path);
     }
 
