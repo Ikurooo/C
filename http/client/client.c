@@ -383,3 +383,5 @@ int main(int argc, char *argv[]) {
     close(clientSocket);
     exit(0);
 }
+
+// TODO: change sscanf(3) to strtok(3)
