@@ -10,8 +10,9 @@
 #include <arpa/inet.h>
 #include <limits.h>
 #include <sys/stat.h>
-#include <stdbool.h>
 #include <signal.h>
+#include <time.h>
+#include <fcntl.h>
 
 const int BUFFER_SIZE = 1024;
 volatile int QUIT = 0;
@@ -119,7 +120,7 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
         return -1;
     }
 
-    if(fprintf(writeFile, "HTTP/1.1 %d %s.\r\nConnection: close\r\n\r\n", code, response) == -1){
+    if(fprintf(writeFile, "HTTP/1.1 %d %s.\r\n", code, response) == -1){
         fprintf(stderr, "Error writing to client.\n");
         return -1;
     }
@@ -133,6 +134,43 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
     if (readFile == NULL) {
         fprintf(stderr, "Error opening file.\n");
         return -1;
+    }
+
+    time_t currentTime;
+    time(&currentTime);
+
+    char timeString[100];
+    strftime(timeString, sizeof(timeString), "%a, %d %b %y %T %Z", localtime(&currentTime));
+
+    struct stat st;
+    int status;
+
+    status = stat(path, &st);
+    if(status == -1) {
+        return -1;
+    }
+
+    char *extension = strrchr(path, '.') + 1;
+
+    if (extension == NULL) {
+        fprintf(stderr, "Error determining file extension\n");
+        return -1;
+    }
+
+    char *contentType = NULL;
+
+    if(strcmp(extension, "html") == 0 || strcmp(extension, "htm") == 0){
+        contentType = "Content-Type: text/html\r\n";
+    }
+    else if(strcmp(extension, "css") == 0){
+        contentType = "Content-Type: text/css\r\n";
+    }
+    else if(strcmp(extension, "js") == 0){
+        contentType = "Content-Type: application/javascript\r\n";
+    }
+
+    if(fprintf(writeFile, "Date: %s\r\n%sContent-Length: %ld\r\nConnection: close\r\n\r\n", timeString, contentType, st.st_size) < 0){
+        fprintf(stderr, "Error fprintf failed\n");
     }
 
     size_t read = 0;
