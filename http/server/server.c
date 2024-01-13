@@ -92,11 +92,6 @@ int validateRequest(char *request, char **path, char *index, char *root) {
     char *type = strtok(request, " ");
     *path = strtok(NULL, " ");
     char *protocol = strtok(NULL, " ");
-    char *misc = strtok(NULL, "\r\n");
-
-    if (type == NULL || *path == NULL || protocol == NULL || misc != NULL) {
-        response = 400;
-    }
 
     if (strncmp(protocol, "HTTP/1.1", 8) != 0 ) {
         response = 400;
@@ -232,7 +227,7 @@ int main(int argc, char *argv[]) {
     }
 
     bool quit = false;
-    while (quit == false) {
+    while (1) {
         int clientSocket;
         struct sockaddr clientAddress;
         socklen_t clientAddressLength = sizeof(clientAddress);
@@ -250,7 +245,7 @@ int main(int argc, char *argv[]) {
         }
         printf("%s\n", buffer);
 
-        FILE *writeFile = fdopen(serverSocket, "r+");
+        FILE *writeFile = fdopen(clientSocket, "r+");
         if(writeFile == NULL){
             close(serverSocket);
             fprintf(stderr, "Error fdopen failed\n");
@@ -282,8 +277,8 @@ int main(int argc, char *argv[]) {
                 assert(0);
         }
 
-        free(*path);
         fclose(writeFile);
+        free(path);
     }
 
     exit(EXIT_SUCCESS);
