@@ -13,3 +13,4 @@
 #include <signal.h>
 #include <time.h>
 #include <fcntl.h>
+#include <stdbool.h>
