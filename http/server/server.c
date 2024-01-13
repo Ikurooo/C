@@ -317,8 +317,6 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        printf("%s\n", buffer);
-
         char **path = malloc(sizeof(buffer));
         switch (validateRequest(buffer, path, index, root)) {
             case 400:
