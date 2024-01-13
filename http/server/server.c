@@ -125,13 +125,14 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
         return -1;
     }
 
-    if(fprintf(writeFile, "HTTP/1.1 %d %s.\r\n", code, response) == -1){
+    if(fprintf(writeFile, "HTTP/1.1 %d (%s)\r\n", code, response) == -1){
         fprintf(stderr, "Error writing to client.\n");
         return -1;
     }
 
     if (code != 200) {
         fflush(writeFile);
+        fclose(writeFile);
         return 0;
     }
 
@@ -140,7 +141,6 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
         fprintf(stderr, "Error opening file.\n");
         return -1;
     }
-
 
     time_t currentTime;
     time(&currentTime);
@@ -157,20 +157,22 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
     }
 
     char *extension = strrchr(path, '.');
-
     const char *contentType;
 
     if (extension == NULL) {
         contentType = "Content-Type: text/plain\r\n";
-    }
-    else if (strcmp(extension, "html") == 0 || strcmp(extension, "htm") == 0) {
-        contentType = "Content-Type: text/html\r\n";
-    }
-    else if (strcmp(extension, "css") == 0) {
-        contentType = "Content-Type: text/css\r\n";
-    }
-    else if (strcmp(extension, "js") == 0) {
-        contentType = "Content-Type: application/javascript\r\n";
+    } else {
+        printf("%s\n", extension);
+        if (strcmp(extension, ".html") == 0 || strcmp(extension, ".htm") == 0) {
+            contentType = "Content-Type: text/html\r\n";
+        }
+        if (strcmp(extension, ".css") == 0) {
+            contentType = "Content-Type: text/css\r\n";
+        }
+        if (strcmp(extension, ".js") == 0) {
+            contentType = "Content-Type: application/javascript\r\n";
+        }
+        // TODO: add extra extensions
     }
 
     if(fprintf(writeFile, "Date: %s\r\n%sContent-Length: %ld\r\nConnection: close\r\n\r\n", timeString, contentType, st.st_size) < 0){
