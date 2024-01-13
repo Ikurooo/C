@@ -101,8 +101,6 @@ int validateRequest(char *request, char **path, char *index, char *root) {
         response = 501;
     }
 
-    printf("%s\n", *path);
-
     if (strncmp(*path, "/", 1) == 0 && strlen(*path) == 1) {
         *path = strdup(index);
     }
@@ -114,8 +112,6 @@ int validateRequest(char *request, char **path, char *index, char *root) {
     } else {
         *path = strdup(fullPath);
     }
-
-    printf("%s\n", fullPath);
 
     return response;
 }
@@ -243,7 +239,6 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Failed to receive message.\n");
             exit(EXIT_FAILURE);
         }
-        printf("%s\n", buffer);
 
         FILE *writeFile = fdopen(clientSocket, "r+");
         if(writeFile == NULL){
@@ -252,7 +247,8 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
 
-        // For now, we only check the first line.
+        printf("%s\n", buffer);
+
         char **path = malloc(sizeof(buffer));
         switch (validateRequest(buffer, path, index, root)) {
             case 400:
@@ -268,10 +264,15 @@ int main(int argc, char *argv[]) {
                 fflush(writeFile);
                 break;
             case 501:
-                if(fprintf(writeFile, "HTTP/1.1 501 Not Implemented..\r\nConnection: close\r\n\r\n") == -1){
+                if(fprintf(writeFile, "HTTP/1.1 501 Not Implemented.\r\nConnection: close\r\n\r\n") == -1){
                     fprintf(stderr, "Error writing to client.\n");
                 }
                 fflush(writeFile);
+                break;
+            case 200:
+                if(fprintf(writeFile, "HTTP/1.1 200 OK.\r\nConnection: close\r\n\r\n") == -1){
+                    fprintf(stderr, "Error writing to client.\n");
+                }
                 break;
             default:
                 assert(0);
