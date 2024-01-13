@@ -163,7 +163,7 @@ int validateFile(char *file) {
  * @param status
  * @return
  */
-int validateResponseCode(char protocol[9], char status[4]) {
+int validateResponseCode(char *protocol, char *status) {
     if (strncmp(protocol, "HTTP/1.1", 8) != 0) {
         return 2;
     }
@@ -315,11 +315,11 @@ int main(int argc, char *argv[]) {
         exit(2);
     }
 
-    char protocol[9];
-    char status[4];
-    char misc[strlen(line)];
+    char *protocol = strtok(line, " ");
+    char *status = strtok(NULL, " ");
+    char *misc = strtok(NULL, "\r\n");
 
-    if (sscanf(line, "%8s %3[^\r\n] %[^\r\n]", protocol, status, misc) != 3) {
+    if (protocol == NULL || status == NULL || misc == NULL) {
         free(uri.file);
         close(clientSocket);
         fprintf(stderr, "ERROR parsing first line of client socket as file.\n");
