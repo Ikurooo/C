@@ -1,3 +1,10 @@
+/**
+ * @file server.c
+ * @author Ivan Cankov 12219400 <e12219400@student.tuwien.ac.at>
+ * @date 13.01.2024
+ * @brief A simple HTTP server in C
+ **/
+
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
