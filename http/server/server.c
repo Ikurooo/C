@@ -11,6 +11,14 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <stdbool.h>
+#include <signal.h>
+
+const int BUFFER_SIZE = 1024;
+volatile int QUIT = 0;
+
+void handler(int sig) {
+    QUIT = 1;
+}
 
 /**
  * @brief Print a usage message to stderr and exit the process with EXIT_FAILURE.
@@ -127,11 +135,10 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
         return -1;
     }
 
-    int bufferSize = 1024;
     size_t read = 0;
-    char buffer[bufferSize];
+    char buffer[BUFFER_SIZE];
 
-    while((read = fread(buffer, sizeof(char), bufferSize, readFile)) != 0){
+    while((read = fread(buffer, sizeof(char), BUFFER_SIZE, readFile)) != 0){
         fwrite(buffer, sizeof(char), read, writeFile);
     }
 
@@ -207,7 +214,14 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    const size_t bufferSize = 1024; // TODO: think about this
+    struct sigaction sa;
+
+    memset(&sa, 0, sizeof(sa));
+
+    sa.sa_handler = handler;
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
+
     const int backlog = 1;
     int serverSocket;
 
@@ -247,8 +261,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    bool quit = false;
-    while (1) {
+    while (QUIT == 0) {
         int clientSocket;
         struct sockaddr clientAddress;
         socklen_t clientAddressLength = sizeof(clientAddress);
@@ -258,7 +271,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        char buffer[bufferSize];
+        char buffer[BUFFER_SIZE];
         memset(buffer, 0, sizeof(buffer));
 
         if ((recv(clientSocket, buffer, sizeof(buffer), 0)) == -1) {
