@@ -45,6 +45,7 @@ int parsePort(const char *portStr) {
  * @return 0 if successful -1 otherwise
  */
 int validateFile(char *file) {
+    if (file == NULL) return 0;
     return (strspn(file, "/\\:*?\"<>|") != 0 || strlen(file) > 255) ? -1 : 0;
 }
 
@@ -63,13 +64,37 @@ int validateDir(char **dir) {
     return stat(*dir, &st);
 }
 
+int checkDocumentExistence(char *fullPath) {
+    return (access(fullPath, F_OK) == -1) ? 404 : 0;
+}
+
+int getFullPath(const char *path, const char *root, char *fullPath, size_t maxLength) {
+    size_t requiredLength = strlen(path) + strlen(root) + 2;
+    if (requiredLength > maxLength) {
+        return -1;
+    }
+
+    memset(fullPath, 0, sizeof(maxLength));
+    strcpy(fullPath, root);
+    strcat(fullPath, path);
+
+    if (checkDocumentExistence(fullPath) != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
 // FREE THE CHILDREN FROM THE CURSE OF A MEMORY LEAK
-int validateRequest(char *request, char **path, char *index) {
-    char *type = NULL;
-    char *protocol = NULL;
+int validateRequest(char *request, char **path, char *index, char *root) {
     int response = 200;
 
-    if (sscanf(request, "%ms %ms %ms", &type, path, &protocol) != 3) {
+    char *type = strtok(request, " ");
+    *path = strtok(NULL, " ");
+    char *protocol = strtok(NULL, " ");
+    char *misc = strtok(NULL, "\r\n");
+
+    if (type == NULL || *path == NULL || protocol == NULL || misc != NULL) {
         response = 400;
     }
 
@@ -81,26 +106,22 @@ int validateRequest(char *request, char **path, char *index) {
         response = 501;
     }
 
-    char *fullPath = malloc(strlen(*path) + strlen(index) + 1);
+    printf("%s\n", *path);
 
-    if (fullPath == NULL) {
-        free(fullPath);
-        free(type);
-        free(protocol);
-        free(path);
-        return -1;
+    if (strncmp(*path, "/", 1) == 0 && strlen(*path) == 1) {
+        *path = strdup(index);
     }
 
-    strcpy(fullPath, *path);
-    strcat(fullPath, index);
-
-    if (access(*path, F_OK) != -1) {
+    size_t maxLength = strlen(index) + strlen(*path) + 2;
+    char fullPath[maxLength];
+    if (getFullPath(*path, root, fullPath, maxLength) != 0) {
         response = 404;
+    } else {
+        *path = strdup(fullPath);
     }
 
-    free(fullPath);
-    free(type);
-    free(protocol);
+    printf("%s\n", fullPath);
+
     return response;
 }
 
@@ -136,9 +157,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (index == NULL) {
-        index = "index.html";
+    if (argc - optind != 1) {
+        usage(argv[0]);
     }
+    root = argv[optind];
 
     if (validateDir(&root) != 0) {
         fprintf(stderr, "Invalid doc-root directory name.\n");
@@ -148,6 +170,10 @@ int main(int argc, char *argv[]) {
     if (validateFile(index) != 0) {
         fprintf(stderr, "Invalid index file name.\n");
         exit(EXIT_FAILURE);
+    }
+
+    if (index == NULL) {
+        index = "/index.html";
     }
 
     if (argc - optind != 1) {
@@ -216,34 +242,48 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
 
-        char *buffer[bufferSize];
+        char buffer[bufferSize];
 
         if ((recv(clientSocket, buffer, sizeof(buffer), 0)) == -1) {
             fprintf(stderr, "Failed to receive message.\n");
             exit(EXIT_FAILURE);
         }
+        printf("%s\n", buffer);
+
+        FILE *writeFile = fdopen(serverSocket, "r+");
+        if(writeFile == NULL){
+            close(serverSocket);
+            fprintf(stderr, "Error fdopen failed\n");
+            exit(EXIT_FAILURE);
+        }
 
         // For now, we only check the first line.
-        char **path;
-        switch (validateRequest(*buffer, path, index)) {
-            case -1:
-                printf("internal server error.\n");
-                break;
-            case 200:
-                printf("hello\n");
-                break;
+        char **path = malloc(sizeof(buffer));
+        switch (validateRequest(buffer, path, index, root)) {
             case 400:
-                free(path);;
+                if(fprintf(writeFile, "HTTP/1.1 400 Bad Request.\r\nConnection: close\r\n\r\n") == -1){
+                    fprintf(stderr, "Error writing to client.\n");
+                }
+                fflush(writeFile);
                 break;
             case 404:
-                free(path);
+                if(fprintf(writeFile, "HTTP/1.1 404 Not Found.\r\nConnection: close\r\n\r\n") == -1){
+                    fprintf(stderr, "Error writing to client.\n");
+                }
+                fflush(writeFile);
                 break;
             case 501:
-                free(path);;
+                if(fprintf(writeFile, "HTTP/1.1 501 Not Implemented..\r\nConnection: close\r\n\r\n") == -1){
+                    fprintf(stderr, "Error writing to client.\n");
+                }
+                fflush(writeFile);
                 break;
             default:
-                break;
+                assert(0);
         }
+
+        free(*path);
+        fclose(writeFile);
     }
 
     exit(EXIT_SUCCESS);
