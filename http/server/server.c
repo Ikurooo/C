@@ -73,6 +73,14 @@ int validateDir(char **dir) {
     return stat(*dir, &st);
 }
 
+/**
+ * Concatenates the doc-root and the requested file and checks for existence.
+ * @param path the requested file path
+ * @param root the doc-root
+ * @param fullPath a character array of length path + root + 2 or larger
+ * @param maxLength the length of the full path
+ * @return 0 if successful -1 otherwise
+ */
 int getFullPath(const char *path, const char *root, char *fullPath, size_t maxLength) {
     size_t requiredLength = strlen(path) + strlen(root) + 2;
     if (requiredLength > maxLength) {
@@ -91,6 +99,14 @@ int getFullPath(const char *path, const char *root, char *fullPath, size_t maxLe
     return (access(fullPath, F_OK) == 0) ? 0 : 1;
 }
 
+/**
+ * Validates an HTTP request.
+ * @param request the request
+ * @param path a NOT initialised array of characters that gets modified in the function
+ * @param index the index file
+ * @param root the doc-root
+ * @return 200 if successful
+ */
 int validateRequest(char *request, char **path, char *index, char *root) {
     char *type = strtok(request, " ");
     *path = strtok(NULL, " ");
@@ -123,6 +139,14 @@ int validateRequest(char *request, char **path, char *index, char *root) {
     return 200;
 }
 
+/**
+ * Writes a response to the client.
+ * @param code the response code
+ * @param response the response message
+ * @param clientSocket the client socket
+ * @param path the path of the file to be read from
+ * @return 0 if everything went well -1 otherwise
+ */
 int writeResponse(int code, const char *response, int clientSocket, char *path) {
     FILE *writeFile = fdopen(clientSocket, "r+");
     if(writeFile == NULL){
@@ -200,6 +224,14 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
 //     server [-p PORT] [-i INDEX] DOC_ROOT
 // EXAMPLE
 //     server -p 1280 -i index.html ˜/Documents/my_website/
+
+/**
+ * @brief Entrypoint of the programme. (Sets up and runs server)
+ * @details the program uses the HTTP protocol and can send files that are encoded in plain text.
+ * @param argc
+ * @param argv
+ * @return
+ */
 int main(int argc, char *argv[]) {
     char* portStr = NULL;
     char* index = NULL;
