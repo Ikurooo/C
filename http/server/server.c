@@ -96,6 +96,10 @@ int validateRequest(char *request, char **path, char *index, char *root) {
     *path = strtok(NULL, " ");
     char *protocol = strtok(NULL, " ");
 
+    if (type == NULL || *path == NULL || protocol == NULL) {
+        return 400;
+    }
+
     if (strncmp(protocol, "HTTP/1.1", 8) != 0 ) {
         return 400;
     }
