@@ -94,7 +94,6 @@ URI parseUrl(const char *url) {
         return uri;
     }
 
-
     uri.success = 0;
     return uri;
 }
@@ -145,17 +144,16 @@ int validateFile(char *file) {
 }
 
 /**
- * @brief 
- * @param protocol
- * @param status
- * @return
+ * @brief Validates the response.
+ * @param protocol the protocol
+ * @param status the status
+ * @return 0 if success
  */
 int validateResponseCode(char *protocol, char *status) {
     if (strncmp(protocol, "HTTP/1.1", 8) != 0) {
         return 2;
     }
 
-    // Check if status contains only numeric characters
     if (strspn(status, "0123456789") != strlen(status)) {
         return 2;
     }
@@ -229,7 +227,6 @@ int main(int argc, char *argv[]) {
     char strPort[length + 1];
     snprintf(strPort, sizeof(strPort), "%d", port);
 
-    // what?
     if (argc - optind != 1) {
         usage(argv[0]);
         fprintf(stderr, "URL is missing.\n");
@@ -249,6 +246,7 @@ int main(int argc, char *argv[]) {
     struct addrinfo *record;
 
     memset(&hints, 0, sizeof(struct addrinfo));
+
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
@@ -294,7 +292,7 @@ int main(int argc, char *argv[]) {
 
     char *line = NULL;
     size_t linelen = 0;
-    // case where first line is null
+
     if (getline(&line, &linelen, socketFile) == -1) {
         free(uri.file);
         close(clientSocket);
@@ -320,7 +318,6 @@ int main(int argc, char *argv[]) {
         exit(response);
     }
 
-
     if (fileSet == true) {
         if (validateFile(path) == -1) {
             free(uri.file);
@@ -345,7 +342,6 @@ int main(int argc, char *argv[]) {
     }
 
     if (outfile == NULL)  {
-
         free(line);
         fclose(socketFile);
         close(clientSocket);
@@ -353,9 +349,8 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // skip header
     while (getline(&line, &linelen, socketFile) != -1) {
-        if (strcmp(line, "\r\n") == 0) {
+        if (strcmp(line, "\r\n\r\n") == 0) {
             break;
         }
     }
