@@ -264,7 +264,7 @@ int main(int argc, char *argv[]) {
         if (clientSocket == -1) continue;
         if (connect(clientSocket, record->ai_addr, record->ai_addrlen) != -1) break;
         close(clientSocket);
-        exit(1);  // maybe
+        exit(1);
     }
 
     freeaddrinfo(results);
