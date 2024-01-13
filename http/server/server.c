@@ -273,6 +273,15 @@ int main(int argc, char *argv[]) {
                 if(fprintf(writeFile, "HTTP/1.1 200 OK.\r\nConnection: close\r\n\r\n") == -1){
                     fprintf(stderr, "Error writing to client.\n");
                 }
+                FILE *readFile = fopen(*path, "r");
+                if (readFile == NULL) {
+                    fprintf(stderr, "Error opening file.\n");
+                }
+                size_t read = 0;
+                while((read = fread(buffer, sizeof(char), bufferSize, readFile)) != 0){
+                    fwrite(buffer, sizeof(char), read, writeFile);
+                }
+                fflush(writeFile);
                 break;
             default:
                 assert(0);
