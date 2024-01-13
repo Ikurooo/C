@@ -183,12 +183,8 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
     char timeString[100];
     strftime(timeString, sizeof(timeString), "%a, %d %b %y %T %Z", localtime(&currentTime));
 
-    // TODO; this may be redundant
     struct stat st = {0};
-    int status;
-
-    status = stat(path, &st);
-    if(status == -1) {
+    if(stat(path, &st) == -1) {
         return -1;
     }
 
@@ -201,14 +197,14 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
         printf("%s\n", extension);
         if (strcmp(extension, ".html") == 0 || strcmp(extension, ".htm") == 0) {
             contentType = "Content-Type: text/html\r\n";
-        }
-        if (strcmp(extension, ".css") == 0) {
+        } else if (strcmp(extension, ".css") == 0) {
             contentType = "Content-Type: text/css\r\n";
-        }
-        if (strcmp(extension, ".js") == 0) {
+        } else if (strcmp(extension, ".js") == 0) {
             contentType = "Content-Type: application/javascript\r\n";
+        } else {
+            contentType = "Content-Type: text/plain\r\n";
         }
-        // TODO: add extra extensions
+        // TODO: add extra extensions as needed
     }
 
     if(fprintf(writeFile, "Date: %s\r\n%sContent-Length: %ld\r\nConnection: close\r\n\r\n", timeString, contentType, st.st_size) < 0){
@@ -390,5 +386,3 @@ int main(int argc, char *argv[]) {
 
     exit(EXIT_SUCCESS);
 }
-
-// TODO: resubmit
