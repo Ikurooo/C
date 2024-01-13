@@ -5,7 +5,21 @@
  * @brief A simple HTTP server in C
  **/
 
-#include "../util.h"
+#define _GNU_SOURCE
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <assert.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <limits.h>
+#include <sys/stat.h>
+#include <signal.h>
+#include <time.h>
+#include <fcntl.h>
 
 const int BUFFER_SIZE = 1024;
 volatile int QUIT = 0;
@@ -169,7 +183,8 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
     char timeString[100];
     strftime(timeString, sizeof(timeString), "%a, %d %b %y %T %Z", localtime(&currentTime));
 
-    struct stat st;
+    // TODO; this may be redundant
+    struct stat st = {0};
     int status;
 
     status = stat(path, &st);
@@ -211,7 +226,6 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
     fclose(writeFile);
     return 0;
 }
-
 
 // SYNOPSIS
 //     server [-p PORT] [-i INDEX] DOC_ROOT
@@ -295,6 +309,7 @@ int main(int argc, char *argv[]) {
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
 
+    // source: https://www.youtube.com/watch?v=r7mZ11j_3lo&t=333s
     const int backlog = 1;
     int serverSocket;
 
@@ -375,3 +390,5 @@ int main(int argc, char *argv[]) {
 
     exit(EXIT_SUCCESS);
 }
+
+// TODO: resubmit
