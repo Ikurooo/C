@@ -64,10 +64,6 @@ int validateDir(char **dir) {
     return stat(*dir, &st);
 }
 
-int checkDocumentExistence(char *fullPath) {
-    return (access(fullPath, F_OK) == -1) ? 404 : 0;
-}
-
 int getFullPath(const char *path, const char *root, char *fullPath, size_t maxLength) {
     size_t requiredLength = strlen(path) + strlen(root) + 2;
     if (requiredLength > maxLength) {
@@ -78,27 +74,21 @@ int getFullPath(const char *path, const char *root, char *fullPath, size_t maxLe
     strcpy(fullPath, root);
     strcat(fullPath, path);
 
-    if (checkDocumentExistence(fullPath) != 0) {
-        return -1;
-    }
-
-    return 0;
+    return (access(fullPath, F_OK) == -1) ? -1 : 0;
 }
 
 // FREE THE CHILDREN FROM THE CURSE OF A MEMORY LEAK
 int validateRequest(char *request, char **path, char *index, char *root) {
-    int response = 200;
-
     char *type = strtok(request, " ");
     *path = strtok(NULL, " ");
     char *protocol = strtok(NULL, " ");
 
     if (strncmp(protocol, "HTTP/1.1", 8) != 0 ) {
-        response = 400;
+        return 400;
     }
 
     if (strncmp(type, "GET", 3) != 0) {
-        response = 501;
+        return 501;
     }
 
     if (strncmp(*path, "/", 1) == 0 && strlen(*path) == 1) {
@@ -108,12 +98,12 @@ int validateRequest(char *request, char **path, char *index, char *root) {
     size_t maxLength = strlen(index) + strlen(*path) + 2;
     char fullPath[maxLength];
     if (getFullPath(*path, root, fullPath, maxLength) != 0) {
-        response = 404;
+        return 404;
     } else {
         *path = strdup(fullPath);
     }
 
-    return response;
+    return 200;
 }
 
 // SYNOPSIS
@@ -234,6 +224,7 @@ int main(int argc, char *argv[]) {
         }
 
         char buffer[bufferSize];
+        memset(buffer, 0, sizeof(buffer));
 
         if ((recv(clientSocket, buffer, sizeof(buffer), 0)) == -1) {
             fprintf(stderr, "Failed to receive message.\n");
