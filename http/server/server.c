@@ -81,9 +81,14 @@ int getFullPath(const char *path, const char *root, char *fullPath, size_t maxLe
 
     memset(fullPath, 0, sizeof(maxLength));
     strcpy(fullPath, root);
+
+    if (path[0] != '/') {
+        strcat(fullPath, "/");
+    }
+
     strcat(fullPath, path);
 
-    return (access(fullPath, F_OK) == -1) ? -1 : 0;
+    return (access(fullPath, F_OK) == 0) ? 0 : 1;
 }
 
 int validateRequest(char *request, char **path, char *index, char *root) {
@@ -136,6 +141,7 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
         return -1;
     }
 
+
     time_t currentTime;
     time(&currentTime);
 
@@ -150,22 +156,20 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
         return -1;
     }
 
-    char *extension = strrchr(path, '.') + 1;
+    char *extension = strrchr(path, '.');
+
+    const char *contentType;
 
     if (extension == NULL) {
-        fprintf(stderr, "Error determining file extension\n");
-        return -1;
+        contentType = "Content-Type: text/plain\r\n";
     }
-
-    char *contentType = NULL;
-
-    if(strcmp(extension, "html") == 0 || strcmp(extension, "htm") == 0){
+    else if (strcmp(extension, "html") == 0 || strcmp(extension, "htm") == 0) {
         contentType = "Content-Type: text/html\r\n";
     }
-    else if(strcmp(extension, "css") == 0){
+    else if (strcmp(extension, "css") == 0) {
         contentType = "Content-Type: text/css\r\n";
     }
-    else if(strcmp(extension, "js") == 0){
+    else if (strcmp(extension, "js") == 0) {
         contentType = "Content-Type: application/javascript\r\n";
     }
 
@@ -243,7 +247,7 @@ int main(int argc, char *argv[]) {
     root = argv[optind];
 
     if (portStr == NULL) {
-        portStr = "80";
+        portStr = "8080";
     }
     int port = parsePort(portStr);
 
