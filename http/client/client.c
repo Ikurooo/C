@@ -5,7 +5,22 @@
  * @brief A simple HTTP client in C
  **/
 
-#include "../util.h"
+// #include "../util.h"
+#define _GNU_SOURCE
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <assert.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <limits.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <math.h>
 
 typedef struct {
     char *file;
@@ -147,13 +162,14 @@ int validateFile(char *file) {
  * @brief Validates the response.
  * @param protocol the protocol
  * @param status the status
- * @return 0 if success
+ * @return
  */
 int validateResponseCode(char *protocol, char *status) {
     if (strncmp(protocol, "HTTP/1.1", 8) != 0) {
         return 2;
     }
 
+    // Check if status contains only numeric characters
     if (strspn(status, "0123456789") != strlen(status)) {
         return 2;
     }
@@ -246,7 +262,6 @@ int main(int argc, char *argv[]) {
     struct addrinfo *record;
 
     memset(&hints, 0, sizeof(struct addrinfo));
-
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
@@ -350,7 +365,7 @@ int main(int argc, char *argv[]) {
     }
 
     while (getline(&line, &linelen, socketFile) != -1) {
-        if (strcmp(line, "\r\n\r\n") == 0) {
+        if (strcmp(line, "\r\n") == 0) {
             break;
         }
     }
