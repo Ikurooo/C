@@ -14,41 +14,6 @@ typedef struct {
 } URI;
 
 /**
- * @brief Print a usage message to stderr and exit the process with EXIT_FAILURE.
- * @param process The name of the current process.
- */
-void usage(const char *process) {
-    fprintf(stderr, "[%s] USAGE: %s [-p PORT] [-o FILE | -d DIR] URL\n", process, process);
-    exit(EXIT_FAILURE);
-}
-
-/**
- * @brief Parses the port from a string into an integer.
- * @param portStr the port you would like to convert
- * @return 0 if successful -1 otherwise
- */
-int parsePort(const char *portStr) {
-    char *endptr;
-    errno = 0;
-
-    long port = strtol(portStr, &endptr, 10);
-
-    if ((errno == ERANGE && (port == LONG_MAX || port == LONG_MIN)) || (errno != 0 && port == 0)) {
-        return -1;
-    }
-
-    if (endptr == portStr || *endptr != '\0') {
-        return -1;
-    }
-
-    if ((port < 0) || (port > 65535)) {
-        return -1;
-    }
-
-    return (int)port;
-}
-
-/**
  * @brief Parses the the provided URL into a URI struct.
  * @param url the URL you would like to parse
  * @return the uri itself, if the conversion was successful the uri.success value will be 0
