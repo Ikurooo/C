@@ -153,7 +153,6 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
     if (extension == NULL) {
         contentType = "Content-Type: text/plain\r\n";
     } else {
-        printf("%s\n", extension);
         if (strcmp(extension, ".html") == 0 || strcmp(extension, ".htm") == 0) {
             contentType = "Content-Type: text/html\r\n";
         } else if (strcmp(extension, ".css") == 0) {
@@ -277,6 +276,7 @@ int main(int argc, char *argv[]) {
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_PASSIVE;
 
     if (getaddrinfo(NULL, portStr, &hints, &results) != 0) {
         fprintf(stderr, "Failed to translate server socket.\n");
@@ -298,6 +298,17 @@ int main(int argc, char *argv[]) {
     }
 
     freeaddrinfo(results);
+
+    struct sockaddr_in loopback;
+
+    memset(&loopback, 0, sizeof(loopback));
+
+    loopback.sin_family = AF_INET;
+    loopback.sin_addr.s_addr = INADDR_LOOPBACK;
+    char serverIP[INET6_ADDRSTRLEN];
+
+    inet_ntop(AF_INET, &loopback.sin_addr, serverIP, sizeof serverIP);
+    printf("Server listening on IP: %s, port: %s\n", serverIP, portStr);
 
     if (listen(serverSocket, backlog) == -1) {
         fprintf(stderr, "Failed to start server socket listen.\n");
