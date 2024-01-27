@@ -96,7 +96,7 @@ int validateRequest(char *request, char **path, char *index, char *root) {
         return 400;
     }
 
-    if (strncmp(*path, "TeaCold", 8) != 0 ) {
+    if (strncmp(*path, "TeaCold", 8) == 0 ) {
         return 418;
     }
 
@@ -350,17 +350,6 @@ int main(int argc, char *argv[]) {
 
     freeaddrinfo(results);
 
-    struct sockaddr_in loopback;
-
-    memset(&loopback, 0, sizeof(loopback));
-
-    loopback.sin_family = AF_INET;
-    loopback.sin_addr.s_addr = INADDR_LOOPBACK;
-    char serverIP[INET6_ADDRSTRLEN];
-
-    inet_ntop(AF_INET, &loopback.sin_addr, serverIP, sizeof serverIP);
-    printf("Server listening on IP: %s, port: %s\n", serverIP, portStr);
-
     if (listen(serverSocket, backlog) == -1) {
         fprintf(stderr, "Failed to start server socket listen.\n");
         exit(EXIT_FAILURE);
@@ -368,10 +357,7 @@ int main(int argc, char *argv[]) {
 
     while (QUIT == 0) {
         int clientSocket;
-        struct sockaddr clientAddress;
-        socklen_t clientAddressLength = sizeof(clientAddress);
-
-        if ((clientSocket = accept(serverSocket, &clientAddress, &clientAddressLength)) < 0) {
+        if ((clientSocket = accept(serverSocket, record->ai_addr, &record->ai_addrlen)) < 0) {
             fprintf(stderr, "Failed to accept client socket.\n");
             continue;
         }
@@ -390,7 +376,7 @@ int main(int argc, char *argv[]) {
                 writeResponse(404, "Not Found", clientSocket, *path);
                 break;
             case 418:
-                writeResponse(404, "Tea Cold", clientSocket, *path);
+                writeResponse(418, "Tea Cold", clientSocket, *path);
                 break;
             case 500:
                 writeResponse(500, "Internal Server Error", clientSocket, *path);
