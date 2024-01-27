@@ -105,11 +105,14 @@ int validateRequest(char *request, char **path, char *index, char *root) {
 
     size_t maxLength = strlen(index) + strlen(*path) + 2;
     char fullPath[maxLength];
+    
     if (getFullPath(*path, root, fullPath, maxLength) != 0) {
         return 404;
     } else {
         *path = strdup(fullPath);
     }
+
+    fprintf(stderr, "%s\n", *path);
 
     return 200;
 }
