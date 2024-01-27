@@ -192,6 +192,38 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
     return 0;
 }
 
+/**
+ * receives the message header and prints it to stderr
+ * @param clientSocket the client socket fd
+ * @return the entire request
+ */
+char* receiveHeader(int clientSocket) {
+    char *request = NULL;
+    char buffer[BUFFER_SIZE];
+    size_t bytesRead = 0;
+    size_t totalBytesRead = 8;
+
+    while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 2, 0)) > 0) {
+        buffer[bytesRead] = '\0';
+        totalBytesRead += bytesRead;
+
+        char *temp = realloc(request, totalBytesRead);
+        if (temp == NULL) {
+            free(request);
+            return "ERROR 500 Internal Server Error";
+        }
+        request = temp;
+        request = strcat(request, buffer);
+
+        if (strstr(request, "\r\n\r\n") != NULL) {
+            break;
+        }
+    }
+
+    fprintf(stderr, "%s", request);
+    return request;
+}
+
 // SYNOPSIS
 //     server [-p PORT] [-i INDEX] DOC_ROOT
 // EXAMPLE
@@ -336,25 +368,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        char buffer[BUFFER_SIZE];
-        size_t bytesRead;
-
-        bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
-        buffer[BUFFER_SIZE] = '\0';
-
-        char *request = (bytesRead > 0) ? strdup(buffer) : "GET";
-        fprintf(stderr, "%s", request);
-
-        while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0) {
-            buffer[BUFFER_SIZE] = '\0';
-
-            if (strstr(buffer, "\r\n\r\n") != NULL) {
-                fprintf(stderr, "\nEnd of headers\n");
-                break;
-            }
-
-            fprintf(stderr, "%s", buffer);
-        }
+        char *request = receiveHeader(clientSocket);
 
         char **path = malloc(sizeof(request));
         switch (validateRequest(request, path, index, root)) {
