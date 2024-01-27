@@ -14,6 +14,15 @@ typedef struct {
 } URI;
 
 /**
+ * @brief Print a usage message to stderr and exit the process with EXIT_FAILURE.
+ * @param process The name of the current process.
+ */
+void usage(const char *process) {
+    fprintf(stderr, "[%s] USAGE: %s [-d DIRECTORY | -o OUTPUT FILE] DOMAIN\n", process, process);
+    exit(EXIT_FAILURE);
+}
+
+/**
  * @brief Parses the the provided URL into a URI struct.
  * @param url the URL you would like to parse
  * @return the uri itself, if the conversion was successful the uri.success value will be 0
@@ -66,8 +75,6 @@ URI parseUrl(const char *url) {
         return uri;
     }
 
-    fprintf(stderr, "Got here\n");
-
     if (strlen(uri.host) == 0) {
         free(uri.host);
         free(uri.file);
@@ -104,7 +111,7 @@ int validateDir(char **dir, URI uri) {
     }
 
     *dir = tempDir;
-
+    
     return 0;
 }
 

@@ -17,15 +17,6 @@
 #include <math.h>
 
 /**
- * @brief Print a usage message to stderr and exit the process with EXIT_FAILURE.
- * @param process The name of the current process.
- */
-void usage(const char *process) {
-    fprintf(stderr, "[%s] USAGE: %s [-p PORT] [-i INDEX] DOC_ROOT\n", process, process);
-    exit(EXIT_FAILURE);
-}
-
-/**
  * @brief Parses the port from a string into an integer.
  * @param portStr the port you would like to convert
  * @return 0 if successful -1 otherwise
