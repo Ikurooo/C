@@ -18,7 +18,7 @@ typedef struct {
  * @param process The name of the current process.
  */
 void usage(const char *process) {
-    fprintf(stderr, "[%s] USAGE: %s [-d DIRECTORY | -o OUTPUT FILE] DOMAIN\n", process, process);
+    fprintf(stderr, "[%s] USAGE: %s [-p PORT] [-d DIRECTORY | -o OUTPUT FILE] DOMAIN\n", process, process);
     exit(EXIT_FAILURE);
 }
 
@@ -246,7 +246,8 @@ int main(int argc, char *argv[]) {
         if (clientSocket == -1) continue;
         if (connect(clientSocket, record->ai_addr, record->ai_addrlen) != -1) break;
         close(clientSocket);
-        exit(1);
+        fprintf(stderr, "Failed connecting to server.\n");
+        exit(EXIT_FAILURE);
     }
 
     freeaddrinfo(results);
@@ -254,7 +255,7 @@ int main(int argc, char *argv[]) {
         free(uri.host);
         free(uri.file);
         fprintf(stderr, "Failed connecting to server.\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     char *request = NULL;
@@ -335,6 +336,7 @@ int main(int argc, char *argv[]) {
         if (strcmp(line, "\r\n") == 0) {
             break;
         }
+        fprintf(stderr, "%s", line);
     }
 
     while (getline(&line, &linelen, socketFile) != -1) {
@@ -345,5 +347,5 @@ int main(int argc, char *argv[]) {
     fflush(socketFile);
     fclose(socketFile);
     close(clientSocket);
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
