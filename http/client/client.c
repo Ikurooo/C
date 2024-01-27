@@ -26,15 +26,21 @@ URI parseUrl(const char *url) {
         .success = -1
     };
 
-    if (strncasecmp(url, "http://", 7) != 0) {
-        return uri;
+	int offset = 0;
+	
+    if (strncasecmp(url, "http://", 7) == 0) {
+        offset = 7;
     }
     
-    if ((strlen(url) - 7) == 0) {
+    if (strncasecmp(url, "https://", 8) == 0) {
+        offset = 8;
+    }
+    
+    if ((strlen(url) - offset) == 0) {
         return uri;
     }
 
-    char* s = strpbrk(url + 7, ";/?:@=&");
+    char* s = strpbrk(url + offset, ";/?:@=&");
     if (s == NULL) {
         if (asprintf(&uri.file, "/index.html") == -1) {
             return uri;
@@ -49,7 +55,7 @@ URI parseUrl(const char *url) {
         }
     }
 
-    if (asprintf(&uri.host, "%.*s", (int) (strlen(url) - 7 - strlen(uri.file)), (url + 7)) == -1) {
+    if (asprintf(&uri.host, "%.*s", (int) (strlen(url) - offset - strlen(uri.file)), (url + offset)) == -1) {
         free(uri.file);
         return uri;
     }
@@ -78,7 +84,7 @@ int validateDir(char **dir, URI uri) {
     struct stat st = {0};
 
     if (stat(*dir, &st) == -1) {
-        mkdir(*dir, 0666);
+        mkdir(*dir, 0777);
     }
 
     char *tempDir = NULL;
