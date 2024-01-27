@@ -195,9 +195,9 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
 /**
  * receives the message header and prints it to stderr
  * @param clientSocket the client socket fd
- * @return the entire request
+ * @return the entire request allocated DYNAMICALLY
  */
-char* receiveHeader(int clientSocket) {
+const char* receiveHeader(int clientSocket) {
     char *request = NULL;
     char buffer[BUFFER_SIZE];
     size_t bytesRead = 0;
@@ -210,7 +210,7 @@ char* receiveHeader(int clientSocket) {
         char *temp = realloc(request, totalBytesRead);
         if (temp == NULL) {
             free(request);
-            return "ERROR 500 Internal Server Error";
+            return strdup("ERROR 500 Internal Server Error");
         }
         request = temp;
         request = strcat(request, buffer);
