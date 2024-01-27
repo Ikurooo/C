@@ -215,7 +215,7 @@ char* receiveHeader(int clientSocket) {
         request = temp;
         request = strcat(request, buffer);
 
-        if (strstr(request, "\r\n\r\n") != NULL) {
+        if (strstr(buffer, "\r\n\r\n") != NULL) {
             break;
         }
     }
