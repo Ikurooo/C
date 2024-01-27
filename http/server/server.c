@@ -76,6 +76,7 @@ int getFullPath(const char *path, const char *root, char *fullPath, size_t maxLe
 
 /**
  * Validates an HTTP request.
+ * @details can handle empty requests
  * @param request the request
  * @param path a NOT initialised array of characters that gets modified in the function
  * @param index the index file
@@ -336,17 +337,19 @@ int main(int argc, char *argv[]) {
         }
 
         char buffer[BUFFER_SIZE];
-        memset(buffer, 0, sizeof(buffer));
+        size_t bytesRead;
 
-        if ((recv(clientSocket, buffer, sizeof(buffer), 0)) == -1) {
-            fprintf(stderr, "Failed to receive message.\n");
-            continue;
+        bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+
+        char *request = (bytesRead > 0) ? strdup(buffer) : "GET";
+        fprintf(stderr, "%s", request);
+
+        while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0)) > 0) {
+            fprintf(stderr, "%s", buffer);
         }
 
-        fprintf(stderr, "Request: %s\n", buffer);
-
-        char **path = malloc(sizeof(buffer));
-        switch (validateRequest(buffer, path, index, root)) {
+        char **path = malloc(sizeof(request));
+        switch (validateRequest(request, path, index, root)) {
             case 400:
                 writeResponse(400, "Bad Request", clientSocket, *path);
                 break;
@@ -363,6 +366,7 @@ int main(int argc, char *argv[]) {
                 assert(0);
         }
 
+        free(request);
         free(path);
     }
 
