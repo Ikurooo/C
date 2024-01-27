@@ -7,7 +7,7 @@
 
 #include "../util.h"
 
-const int BUFFER_SIZE = 1024;
+const int BUFFER_SIZE = 32;
 volatile int QUIT = 0;
 
 void handler(int sig) {
@@ -339,12 +339,20 @@ int main(int argc, char *argv[]) {
         char buffer[BUFFER_SIZE];
         size_t bytesRead;
 
-        bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+        bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+        buffer[BUFFER_SIZE] = '\0';
 
         char *request = (bytesRead > 0) ? strdup(buffer) : "GET";
         fprintf(stderr, "%s", request);
 
-        while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0)) > 0) {
+        while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0) {
+            buffer[BUFFER_SIZE] = '\0';
+
+            if (strstr(buffer, "\r\n\r\n") != NULL) {
+                fprintf(stderr, "\nEnd of headers\n");
+                break;
+            }
+
             fprintf(stderr, "%s", buffer);
         }
 
