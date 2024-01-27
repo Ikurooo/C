@@ -29,6 +29,7 @@ URI parseUrl(const char *url) {
     if (strncasecmp(url, "http://", 7) != 0) {
         return uri;
     }
+    
     if ((strlen(url) - 7) == 0) {
         return uri;
     }
@@ -77,7 +78,7 @@ int validateDir(char **dir, URI uri) {
     struct stat st = {0};
 
     if (stat(*dir, &st) == -1) {
-        mkdir(*dir, 0777);
+        mkdir(*dir, 0666);
     }
 
     char *tempDir = NULL;
@@ -99,13 +100,7 @@ int validateDir(char **dir, URI uri) {
  * @return 0 if successful -1 otherwise
  */
 int validateFile(char *file) {
-    if (strspn(file, "/\\:*?\"<>|") != 0) {
-        return -1;
-    }
-    if (strlen(file) > 255) {
-        return -1;
-    }
-    return 0;
+    return (strspn(file, "/\\:*?\"<>|") != 0 || strlen(file) > 255) ? -1 : 0; 
 }
 
 /**
