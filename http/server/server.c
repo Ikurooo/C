@@ -18,7 +18,7 @@ void handler(int sig) {
  * @brief Print a usage message to stderr and exit the process with EXIT_FAILURE.
  * @param process The name of the current process.
  */
-void usage(const char *process) {
+static void usage(const char *process) {
     fprintf(stderr, "[%s] USAGE: %s [-p PORT] [-i INDEX] DOC_ROOT\n", process, process);
     exit(EXIT_FAILURE);
 }
@@ -28,7 +28,7 @@ void usage(const char *process) {
  * @param file the file you would like to validate
  * @return 0 if successful -1 otherwise
  */
-int validateFile(char *file) {
+static int validateFile(char *file) {
     if (file == NULL) return 0;
     return (strspn(file, "/\\:*?\"<>|") != 0 || strlen(file) > 255) ? -1 : 0;
 }
@@ -39,7 +39,7 @@ int validateFile(char *file) {
  * @param dir the directory you would like to validate
  * @return 0 if successful -1 otherwise
  */
-int validateDir(char **dir) {
+static int validateDir(char **dir) {
     if (strpbrk(*dir, "\\:*?\"<>|.") != NULL) {
         return -1;
     }
@@ -56,7 +56,7 @@ int validateDir(char **dir) {
  * @param maxLength the length of the full path
  * @return 0 if successful -1 otherwise
  */
-int getFullPath(const char *path, const char *root, char *fullPath, size_t maxLength) {
+static int getFullPath(const char *path, const char *root, char *fullPath, size_t maxLength) {
     size_t requiredLength = strlen(path) + strlen(root) + 2;
     if (requiredLength > maxLength) {
         return -1;
@@ -83,7 +83,7 @@ int getFullPath(const char *path, const char *root, char *fullPath, size_t maxLe
  * @param root the doc-root
  * @return 200 if successful
  */
-int validateRequest(char *request, char **path, char *index, char *root) {
+static int validateRequest(char *request, char **path, char *index, char *root) {
     char *type = strtok(request, " ");
     *path = strtok(NULL, " ");
     char *protocol = strtok(NULL, " ");
@@ -117,7 +117,7 @@ int validateRequest(char *request, char **path, char *index, char *root) {
     return 200;
 }
 
-const char* getContentType(char *path) {
+static const char* getContentType(char *path) {
     char *extension = strrchr(path, '.');
     const char *contentType;
 
@@ -149,7 +149,7 @@ const char* getContentType(char *path) {
  * @param file1
  * @param file2
  */
-void closeFiles(FILE *file1, FILE *file2) {
+static void closeFiles(FILE *file1, FILE *file2) {
     if (file1 != NULL) fclose(file1);
 
     if (file2 != NULL) fclose(file2);
@@ -163,7 +163,7 @@ void closeFiles(FILE *file1, FILE *file2) {
  * @param path the path of the file to be read from
  * @return 0 if everything went well -1 otherwise
  */
-void writeResponse(int code, const char *response, int clientSocket, char *path) {
+static void writeResponse(int code, const char *response, int clientSocket, char *path) {
     FILE *writeFile = fdopen(clientSocket, "r+");
     if(writeFile == NULL){
         return;
@@ -232,7 +232,7 @@ void writeResponse(int code, const char *response, int clientSocket, char *path)
  * @param clientSocket the client socket fd
  * @return the entire request allocated DYNAMICALLY
  */
-char* receiveHeader(int clientSocket) {
+static char* receiveHeader(int clientSocket) {
     char *request = NULL;
     char buffer[BUFFER_SIZE];
     size_t bytesRead = 0;
