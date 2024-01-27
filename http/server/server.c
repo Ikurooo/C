@@ -96,6 +96,14 @@ int validateRequest(char *request, char **path, char *index, char *root) {
         return 400;
     }
 
+    if (strncmp(*path, "TeaCold", 8) != 0 ) {
+        return 418;
+    }
+
+    if (strncmp(type, "500", 3) == 0) {
+        return 500;
+    }
+
     if (strncmp(type, "GET", 3) != 0) {
         return 501;
     }
@@ -197,7 +205,7 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
  * @param clientSocket the client socket fd
  * @return the entire request allocated DYNAMICALLY
  */
-const char* receiveHeader(int clientSocket) {
+char* receiveHeader(int clientSocket) {
     char *request = NULL;
     char buffer[BUFFER_SIZE];
     size_t bytesRead = 0;
@@ -210,7 +218,7 @@ const char* receiveHeader(int clientSocket) {
         char *temp = realloc(request, totalBytesRead);
         if (temp == NULL) {
             free(request);
-            return strdup("ERROR 500 Internal Server Error");
+            return strdup("ERROR 500 HTTP/1.1");
         }
         request = temp;
         request = strcat(request, buffer);
@@ -372,17 +380,23 @@ int main(int argc, char *argv[]) {
 
         char **path = malloc(sizeof(request));
         switch (validateRequest(request, path, index, root)) {
+            case 200:
+                writeResponse(200, "OK", clientSocket, *path);
+                break;
             case 400:
                 writeResponse(400, "Bad Request", clientSocket, *path);
                 break;
             case 404:
                 writeResponse(404, "Not Found", clientSocket, *path);
                 break;
+            case 418:
+                writeResponse(404, "Tea Cold", clientSocket, *path);
+                break;
+            case 500:
+                writeResponse(500, "Internal Server Error", clientSocket, *path);
+                break;
             case 501:
                 writeResponse(501, "Not Implemented", clientSocket, *path);
-                break;
-            case 200:
-                writeResponse(200, "OK", clientSocket, *path);
                 break;
             default:
                 assert(0);
