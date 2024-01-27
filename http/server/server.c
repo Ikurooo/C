@@ -186,6 +186,8 @@ void writeResponse(int code, const char *response, int clientSocket, char *path)
 
     char timeString[100];
     if (strftime(timeString, sizeof(timeString), "%a, %d %b %y %T %Z", localtime(&currentTime)) == -1) {
+        fclose(writeFile);
+        fclose(readFile);
         return;
     }
 
