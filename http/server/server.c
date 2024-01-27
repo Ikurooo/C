@@ -145,6 +145,17 @@ const char* getContentType(char *path) {
 }
 
 /**
+ * close two files
+ * @param file1
+ * @param file2
+ */
+void closeFiles(FILE *file1, FILE *file2) {
+    if (file1 != NULL) fclose(file1);
+
+    if (file2 != NULL) fclose(file2);
+}
+
+/**
  * Writes a response to the client.
  * @param code the response code
  * @param response the response message
@@ -166,7 +177,7 @@ void writeResponse(int code, const char *response, int clientSocket, char *path)
 
     if (code != 200) {
         fflush(writeFile);
-        fclose(writeFile);
+        closeFiles(writeFile, NULL);
         return;
     }
 
@@ -179,15 +190,13 @@ void writeResponse(int code, const char *response, int clientSocket, char *path)
 
     time_t currentTime;
     if (time(&currentTime) == -1) {
-        fclose(writeFile);
-        fclose(readFile);
+        closeFiles(writeFile, readFile);
         return;
     }
 
     char timeString[100];
     if (strftime(timeString, sizeof(timeString), "%a, %d %b %y %T %Z", localtime(&currentTime)) == -1) {
-        fclose(writeFile);
-        fclose(readFile);
+        closeFiles(writeFile, readFile);
         return;
     }
 
@@ -197,15 +206,13 @@ void writeResponse(int code, const char *response, int clientSocket, char *path)
 
     if (stat(path, &st) != 0) {
         fprintf(stderr, "Error retrieving file status.\n");
-        fclose(writeFile);
-        fclose(readFile);
+        closeFiles(writeFile, readFile);
         return;
     }
 
     if(fprintf(writeFile, "Date: %s\r\n%sContent-Length: %ld\r\nConnection: close\r\n\r\n", timeString, contentType, st.st_size) < 0){
         fprintf(stderr, "Error fprintf failed\n");
-        fclose(writeFile);
-        fclose(readFile);
+        closeFiles(writeFile, readFile);
         return;
     }
 
@@ -217,7 +224,7 @@ void writeResponse(int code, const char *response, int clientSocket, char *path)
     }
 
     fflush(writeFile);
-    fclose(writeFile);
+    closeFiles(writeFile, readFile);
 }
 
 /**
