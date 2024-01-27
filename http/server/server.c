@@ -15,6 +15,15 @@ void handler(int sig) {
 }
 
 /**
+ * @brief Print a usage message to stderr and exit the process with EXIT_FAILURE.
+ * @param process The name of the current process.
+ */
+void usage(const char *process) {
+    fprintf(stderr, "[%s] USAGE: %s [-p PORT] [-i INDEX] DOC_ROOT\n", process, process);
+    exit(EXIT_FAILURE);
+}
+
+/**
  * @brief Validates the provided file.
  * @param file the file you would like to validate
  * @return 0 if successful -1 otherwise
