@@ -26,39 +26,47 @@ URI parseUrl(const char *url) {
         .success = -1
     };
 
-	int offset = 0;
+	int hostOffset = 0;
 	
     if (strncasecmp(url, "http://", 7) == 0) {
-        offset = 7;
+        hostOffset = 7;
     }
     
     if (strncasecmp(url, "https://", 8) == 0) {
-        offset = 8;
+        hostOffset = 8;
     }
     
-    if ((strlen(url) - offset) == 0) {
+    if ((strlen(url) - hostOffset) == 0) {
         return uri;
     }
 
-    char* s = strpbrk(url + offset, ";/?:@=&");
+    char* s = strpbrk(url + hostOffset, ";/?:@=&");
+	int fileLength = -1;
+    
     if (s == NULL) {
         if (asprintf(&uri.file, "/index.html") == -1) {
             return uri;
         }
+        fileLength = 0;
     } else if (s[0] != '/') {
         if (asprintf(&uri.file, "/%s", s) == -1) {
             return uri;
         }
+        fileLength = strlen(uri.file);
     } else {
         if (asprintf(&uri.file, "%s", s) == -1) {
             return uri;
         }
+        fileLength = strlen(uri.file);
     }
 
-    if (asprintf(&uri.host, "%.*s", (int) (strlen(url) - offset - strlen(uri.file)), (url + offset)) == -1) {
+	// strlen(uri.file is messing me up)
+    if (asprintf(&uri.host, "%.*s", (int)(strlen(url) - hostOffset - fileLength), (url + hostOffset)) == -1) {
         free(uri.file);
         return uri;
     }
+
+    fprintf(stderr, "Got here\n");
 
     if (strlen(uri.host) == 0) {
         free(uri.host);
