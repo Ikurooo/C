@@ -176,10 +176,14 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
     }
 
     time_t currentTime;
-    time(&currentTime);
+    if (time(&currentTime) == -1) {
+        return -1;
+    }
 
     char timeString[100];
-    strftime(timeString, sizeof(timeString), "%a, %d %b %y %T %Z", localtime(&currentTime));
+    if (strftime(timeString, sizeof(timeString), "%a, %d %b %y %T %Z", localtime(&currentTime)) == -1) {
+        return -1;
+    }
 
     const char *contentType = getContentType(path);
 
