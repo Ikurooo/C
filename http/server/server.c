@@ -152,37 +152,41 @@ const char* getContentType(char *path) {
  * @param path the path of the file to be read from
  * @return 0 if everything went well -1 otherwise
  */
-int writeResponse(int code, const char *response, int clientSocket, char *path) {
+void writeResponse(int code, const char *response, int clientSocket, char *path) {
     FILE *writeFile = fdopen(clientSocket, "r+");
     if(writeFile == NULL){
-        return -1;
+        return;
     }
 
     if(fprintf(writeFile, "HTTP/1.1 %d (%s)\r\n", code, response) == -1){
         fprintf(stderr, "Error writing to client.\n");
-        return -1;
+        fclose(writeFile);
+        return;
     }
 
     if (code != 200) {
         fflush(writeFile);
         fclose(writeFile);
-        return 0;
+        return;
     }
 
     FILE *readFile = fopen(path, "r");
     if (readFile == NULL) {
         fprintf(stderr, "Error opening file.\n");
-        return -1;
+        fclose(writeFile);
+        return;
     }
 
     time_t currentTime;
     if (time(&currentTime) == -1) {
-        return -1;
+        fclose(writeFile);
+        fclose(readFile);
+        return;
     }
 
     char timeString[100];
     if (strftime(timeString, sizeof(timeString), "%a, %d %b %y %T %Z", localtime(&currentTime)) == -1) {
-        return -1;
+        return;
     }
 
     const char *contentType = getContentType(path);
@@ -191,11 +195,16 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
 
     if (stat(path, &st) != 0) {
         fprintf(stderr, "Error retrieving file status.\n");
-        return -1;
+        fclose(writeFile);
+        fclose(readFile);
+        return;
     }
 
     if(fprintf(writeFile, "Date: %s\r\n%sContent-Length: %ld\r\nConnection: close\r\n\r\n", timeString, contentType, st.st_size) < 0){
         fprintf(stderr, "Error fprintf failed\n");
+        fclose(writeFile);
+        fclose(readFile);
+        return;
     }
 
     size_t read = 0;
@@ -207,7 +216,6 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
 
     fflush(writeFile);
     fclose(writeFile);
-    return 0;
 }
 
 /**
