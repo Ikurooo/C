@@ -71,7 +71,7 @@ int getFullPath(const char *path, const char *root, char *fullPath, size_t maxLe
 
     strcat(fullPath, path);
 
-    return (access(fullPath, F_OK) == 0) ? 0 : 1;
+    return 0;
 }
 
 /**
@@ -88,40 +88,60 @@ int validateRequest(char *request, char **path, char *index, char *root) {
     *path = strtok(NULL, " ");
     char *protocol = strtok(NULL, " ");
 
-    if (type == NULL || *path == NULL || protocol == NULL) {
-        return 400;
-    }
+    if (type == NULL || *path == NULL || protocol == NULL) return 400;
 
-    if (strncmp(protocol, "HTTP/1.1", 8) != 0 ) {
-        return 400;
-    }
+    if (strncmp(protocol, "HTTP/1.1", 8) != 0 ) return 400;
 
-    if (strncmp(*path, "TeaCold", 8) == 0 ) {
-        return 418;
-    }
+    if (strncmp(*path, "TeaCold", 8) == 0 ) return 418;
 
-    if (strncmp(type, "500", 3) == 0) {
-        return 500;
-    }
+    if (strncmp(type, "500", 3) == 0) return 500;
 
-    if (strncmp(type, "GET", 3) != 0) {
-        return 501;
-    }
+    if (strncmp(type, "GET", 3) != 0) return 501;
 
-    if (strncmp(*path, "/", 1) == 0 && strlen(*path) == 1) {
-        *path = strdup(index);
-    }
+    if (strncmp(*path, "/", 1) == 0 && strlen(*path) == 1) *path = strdup(index);
 
     size_t maxLength = strlen(index) + strlen(*path) + 2;
+
     char fullPath[maxLength];
     
-    if (getFullPath(*path, root, fullPath, maxLength) != 0) {
-        return 404;
-    } else {
-        *path = strdup(fullPath);
-    }
+    if (getFullPath(*path, root, fullPath, maxLength) == -1) return 501;
+
+    *path = strdup(fullPath);
+
+    if (*path == NULL) return 501;
+
+    if (access(*path, F_OK) == -1) return 404;
+
+    if (access(*path, R_OK) == -1) return 403;
 
     return 200;
+}
+
+const char* getContentType(char *path) {
+    char *extension = strrchr(path, '.');
+    const char *contentType;
+
+    if (extension == NULL) {
+        contentType = "Content-Type: text/plain\r\n";
+    } else if (strcmp(extension, ".html") == 0 || strcmp(extension, ".htm") == 0) {
+        contentType = "Content-Type: text/html\r\n";
+    } else if (strcmp(extension, ".css") == 0) {
+        contentType = "Content-Type: text/css\r\n";
+    } else if (strcmp(extension, ".js") == 0) {
+        contentType = "Content-Type: application/javascript\r\n";
+    } else if (strcmp(extension, ".png") == 0) {
+        contentType = "Content-Type: image/png\r\n";
+    } else if (strcmp(extension, ".jpg") == 0 || strcmp(extension, ".jpeg") == 0) {
+        contentType = "Content-Type: image/jpeg\r\n";
+    } else if (strcmp(extension, ".gif") == 0) {
+        contentType = "Content-Type: image/gif\r\n";
+    } else if (strcmp(extension, ".json") == 0) {
+        contentType = "Content-Type: application/json\r\n";
+    } else {
+        contentType = "Content-Type: text/plain\r\n";
+    }
+
+    return contentType;
 }
 
 /**
@@ -161,28 +181,7 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
     char timeString[100];
     strftime(timeString, sizeof(timeString), "%a, %d %b %y %T %Z", localtime(&currentTime));
 
-    struct stat st = {0};
-    if(stat(path, &st) == -1) {
-        return -1;
-    }
-
-    char *extension = strrchr(path, '.');
-    const char *contentType;
-
-    if (extension == NULL) {
-        contentType = "Content-Type: text/plain\r\n";
-    } else {
-        if (strcmp(extension, ".html") == 0 || strcmp(extension, ".htm") == 0) {
-            contentType = "Content-Type: text/html\r\n";
-        } else if (strcmp(extension, ".css") == 0) {
-            contentType = "Content-Type: text/css\r\n";
-        } else if (strcmp(extension, ".js") == 0) {
-            contentType = "Content-Type: application/javascript\r\n";
-        } else {
-            contentType = "Content-Type: text/plain\r\n";
-        }
-        // TODO: add extra extensions as needed
-    }
+    const char *contentType = getContentType(path);
 
     if(fprintf(writeFile, "Date: %s\r\n%sContent-Length: %ld\r\nConnection: close\r\n\r\n", timeString, contentType, st.st_size) < 0){
         fprintf(stderr, "Error fprintf failed\n");
@@ -371,6 +370,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 400:
                 writeResponse(400, "Bad Request", clientSocket, *path);
+                break;
+            case 403:
+                writeResponse(400, "Forbidden", clientSocket, *path);
                 break;
             case 404:
                 writeResponse(404, "Not Found", clientSocket, *path);
