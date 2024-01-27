@@ -53,7 +53,7 @@ URI parseUrl(const char *url) {
 	int fileLength = -1;
     
     if (s == NULL) {
-        if (asprintf(&uri.file, "/index.html") == -1) {
+        if (asprintf(&uri.file, "/") == -1) {
             return uri;
         }
         fileLength = 0;

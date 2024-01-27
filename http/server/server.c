@@ -112,8 +112,6 @@ int validateRequest(char *request, char **path, char *index, char *root) {
         *path = strdup(fullPath);
     }
 
-    fprintf(stderr, "%s\n", *path);
-
     return 200;
 }
 
@@ -344,6 +342,8 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Failed to receive message.\n");
             continue;
         }
+
+        fprintf(stderr, "Request: %s\n", buffer);
 
         char **path = malloc(sizeof(buffer));
         switch (validateRequest(buffer, path, index, root)) {
