@@ -183,6 +183,13 @@ int writeResponse(int code, const char *response, int clientSocket, char *path) 
 
     const char *contentType = getContentType(path);
 
+    struct stat st;
+
+    if (stat(path, &st) != 0) {
+        fprintf(stderr, "Error retrieving file status.\n");
+        return -1;
+    }
+
     if(fprintf(writeFile, "Date: %s\r\n%sContent-Length: %ld\r\nConnection: close\r\n\r\n", timeString, contentType, st.st_size) < 0){
         fprintf(stderr, "Error fprintf failed\n");
     }
